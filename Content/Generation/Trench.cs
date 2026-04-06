@@ -24,7 +24,7 @@ namespace IAmLostInASea.Content.Generation
         {
             progress.Message = "Into the abyss you go";
 
-            MaxWidth = Main.maxTilesX >= 8400 ? 44 : Main.maxTilesX >= 6400 ? 40 : 36;
+            MaxWidth = Main.maxTilesX >= 8400 ? 60 : Main.maxTilesX >= 6400 ? 55 : 50;
 
             //Get the X spawn point of the trench
             if (GenVars.dungeonSide == -1)
@@ -37,60 +37,18 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Get the Y spawn point of the trench
-            bool FoundSurface = false;
-            int attempts = 0;
-
-            while (!FoundSurface && attempts++ < 100000)
-            {
-				int Y = 10;
-
-				while (!WorldGen.SolidTile(PlaceTrenchX, Y) && Y <= Main.worldSurface)
-				{
-					Y++;
-				}
-				if (WorldGen.SolidTile(PlaceTrenchX, Y))
-				{
-					FoundSurface = true;
-                    PlaceTrenchY = Y - 25;
-				}
-			}
+            PlaceTrenchY = FindSurface(PlaceTrenchX) - 25;
 
             //Origin point of the trench
             Point origin = new Point(PlaceTrenchX, PlaceTrenchY);
 
             //How deep it should be
-            int depthLimit = Main.maxTilesY - 500;
+            int depthLimit = Main.maxTilesY - 400;
             TrenchDepthLimit = Math.Abs(PlaceTrenchY - depthLimit);
 
             //Place a solid base of hardened sand and regular sand for the trench
-            //Make the regular sand base smaller
-            Point baseOrigin = new Point(PlaceTrenchX, PlaceTrenchY + 40);
-            int BaseDepthLimit = TrenchDepthLimit + 40;
-            int baseWidth = (int)(MaxWidth * 1.5f);
-
-            WorldUtils.Gen(baseOrigin, new ReverseMound(baseWidth, BaseDepthLimit), Actions.Chain(new GenAction[]
-			{
-                new Modifiers.Blotches(2, 0.4),
-                new Actions.ClearWall(), //Hage walls
-                new Actions.SetTile(TileID.HardenedSand),
-			}));
-
-            BaseDepthLimit = TrenchDepthLimit + 20;
-            baseWidth = (int)(MaxWidth * 1.25f);
-
-            WorldUtils.Gen(baseOrigin, new ReverseMound(baseWidth, BaseDepthLimit), Actions.Chain(new GenAction[]
-			{
-                new Modifiers.Blotches(2, 0.4),
-                new Actions.SetTile(TileID.Sand),
-			}));
-
-            //Clear the tiles, set the water
-            WorldUtils.Gen(origin, new ReverseMound(MaxWidth, TrenchDepthLimit), Actions.Chain(new GenAction[]
-			{
-                new Modifiers.Blotches(2, 0.4),
-                new Actions.ClearTile(),
-                new Actions.SetLiquid(),
-			}));
+            TrenchBase(PlaceTrenchX, PlaceTrenchY, MaxWidth + 20, TrenchDepthLimit + 30);
+            TrenchHole(PlaceTrenchX, PlaceTrenchY, MaxWidth, TrenchDepthLimit);
 
             WorldGen.PlaceTile(PlaceTrenchX, PlaceTrenchY, TileID.EmeraldGemspark, forced: true);
 
@@ -129,6 +87,77 @@ namespace IAmLostInASea.Content.Generation
 
             WorldGen.PlaceTile(PlaceTrenchX, PlaceTrenchY, TileID.EmeraldGemspark, forced: true);
             */
+        }
+
+        public static void TrenchBase(int X, int Y, int width, int depth)
+        {
+            int limit;
+
+            for (int i = -width; i <= width; i++)
+            {
+                limit = FindSurface(X + i, Y - 25) + 20;
+
+                for (int j = 0; j <= depth; j++)
+                {
+                    if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    {
+                        if (Y + j < limit)
+                        {
+                            continue;
+                        }
+
+                        WorldGen.PlaceTile(X + i, Y + j, TileID.HardenedSand, forced: true);
+                        WorldGen.SlopeTile(X + i, Y + j);
+                    }
+                }
+            }
+        }
+
+        public static void TrenchHole(int X, int Y, int width, int depth)
+        {
+            for (int i = -width; i <= width; i++)
+            {
+                for (int j = 0; j <= depth; j++)
+                {
+                    if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    {
+                        WorldGen.KillTile(X + i, Y + j, noItem: true);
+                        WorldGen.PlaceLiquid(X + i, Y + j, Byte.MinValue, Byte.MaxValue);
+                    }
+                }
+            }
+        }
+
+        public static int FindSurface(int X, int startY = 10)
+        {
+            bool FoundSurface = false;
+            int attempts = 0;
+
+            int Y = startY;
+
+            while (!FoundSurface && attempts++ < 100000)
+            {
+				while (!WorldGen.SolidTile(X, Y) && Y <= Main.worldSurface)
+				{
+					Y++;
+				}
+				if (WorldGen.SolidTile(X, Y))
+				{
+					FoundSurface = true;
+				}
+			}
+
+            return Y;
+        }
+
+        public static bool IsInEllipse(int H, int K, int A, int B, int X, int Y)
+        {
+            double powXH = Math.Pow(X - H, 2);
+            double powYK = Math.Pow(Y - K, 2);
+            double powA = Math.Pow(A, 2);
+            double powB = Math.Pow(B, 2);
+
+            return (powXH / powA) + (powYK / powB) <= 1;
         }
 
         public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
