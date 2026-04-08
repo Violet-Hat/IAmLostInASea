@@ -6,7 +6,6 @@ using Terraria.ID;
 using Terraria.WorldBuilding;
 using Terraria.ModLoader;
 using Terraria.GameContent.Generation;
-using ABMod.Generation;
 
 namespace IAmLostInASea.Content.Generation
 {
@@ -16,7 +15,6 @@ namespace IAmLostInASea.Content.Generation
         public static int PlaceTrenchY;
         public static int TrenchDepthLimit;
         public static int MaxWidth;
-        //public static int MinWidth;
 
         private void TrenchGen(GenerationProgress progress, GameConfiguration configuration)
         {

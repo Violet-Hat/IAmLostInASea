@@ -6,7 +6,7 @@ using Terraria.WorldBuilding;
 using Terraria.ModLoader;
 using Terraria.ID;
 
-namespace ABMod.Generation
+namespace IAmLostInASea.Content.Generation
 {
 	public class WorldgenTools
 	{	
