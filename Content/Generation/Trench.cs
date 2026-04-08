@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.IO;
 using Terraria.ID;
@@ -8,7 +7,6 @@ using Terraria.WorldBuilding;
 using Terraria.ModLoader;
 using Terraria.GameContent.Generation;
 using ABMod.Generation;
-using ReLogic.Utilities;
 
 namespace IAmLostInASea.Content.Generation
 {
@@ -39,54 +37,26 @@ namespace IAmLostInASea.Content.Generation
             //Get the Y spawn point of the trench
             PlaceTrenchY = FindSurface(PlaceTrenchX) - 25;
 
-            //Origin point of the trench
-            Point origin = new Point(PlaceTrenchX, PlaceTrenchY);
-
             //How deep it should be
             int depthLimit = Main.maxTilesY - 400;
             TrenchDepthLimit = Math.Abs(PlaceTrenchY - depthLimit);
 
-            //Place a solid base of hardened sand and regular sand for the trench
+            //Place a solid base of hardened sand
             TrenchBase(PlaceTrenchX, PlaceTrenchY, MaxWidth + 20, TrenchDepthLimit + 30);
+            progress.Set(0.25);
+
+            //Noise
             TrenchHole(PlaceTrenchX, PlaceTrenchY, MaxWidth, TrenchDepthLimit);
+            progress.Set(0.5);
+
+            //Smooth the noise
+            TrenchSmoothing(PlaceTrenchX, PlaceTrenchY, MaxWidth + 5, TrenchDepthLimit + 10, 4);
+            progress.Set(0.75);
+
+            //Fill with water
+            TrenchFilling(PlaceTrenchX, PlaceTrenchY, MaxWidth + 5, TrenchDepthLimit + 10);
 
             WorldGen.PlaceTile(PlaceTrenchX, PlaceTrenchY, TileID.EmeraldGemspark, forced: true);
-
-            /*
-            Vector2D offSet = new Vector2D(0, TrenchDepthLimit);
-
-            //Place a solid base of hardened sand and regular sand for the trench
-            //Make the regular sand base smaller
-            Point baseOrigin = new Point(PlaceTrenchX, PlaceTrenchY + 40);
-            Vector2D baseOffSet = new Vector2D(0, TrenchDepthLimit + 50);
-            int baseWidth = (int)(MaxWidth * 1.25f);
-
-            WorldUtils.Gen(baseOrigin, new Shapes.Tail(baseWidth, baseOffSet), Actions.Chain(new GenAction[]
-			{
-                new Modifiers.Blotches(2, 0.4),
-                new Actions.ClearWall(), //Hage walls
-                new Actions.SetTile(TileID.HardenedSand),
-			}));
-
-            baseOffSet = new Vector2D(0, TrenchDepthLimit + 25);
-            baseWidth = (int)(MaxWidth * 1.10f);
-
-            WorldUtils.Gen(baseOrigin, new Shapes.Tail(baseWidth, baseOffSet), Actions.Chain(new GenAction[]
-			{
-                new Modifiers.Blotches(2, 0.4),
-                new Actions.SetTile(TileID.Sand),
-			}));
-
-            //Clear the tiles, set the water
-            WorldUtils.Gen(origin, new Shapes.Tail(MaxWidth, offSet), Actions.Chain(new GenAction[]
-			{
-                new Modifiers.Blotches(2, 0.4),
-                new Actions.ClearTile(),
-                new Actions.SetLiquid(),
-			}));
-
-            WorldGen.PlaceTile(PlaceTrenchX, PlaceTrenchY, TileID.EmeraldGemspark, forced: true);
-            */
         }
 
         public static void TrenchBase(int X, int Y, int width, int depth)
@@ -95,7 +65,7 @@ namespace IAmLostInASea.Content.Generation
 
             for (int i = -width; i <= width; i++)
             {
-                limit = FindSurface(X + i, Y - 25) + 20;
+                limit = FindSurface(X + i, Y - 25) + 15;
 
                 for (int j = 0; j <= depth; j++)
                 {
@@ -108,6 +78,8 @@ namespace IAmLostInASea.Content.Generation
 
                         WorldGen.PlaceTile(X + i, Y + j, TileID.HardenedSand, forced: true);
                         WorldGen.SlopeTile(X + i, Y + j);
+
+                        WorldGen.KillWall(X + i, Y + j); //I hage wall
                     }
                 }
             }
@@ -121,8 +93,59 @@ namespace IAmLostInASea.Content.Generation
                 {
                     if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
                     {
-                        WorldGen.KillTile(X + i, Y + j, noItem: true);
-                        WorldGen.PlaceLiquid(X + i, Y + j, Byte.MinValue, Byte.MaxValue);
+                        if (Main.tile[X + i, Y + j].TileType == TileID.Sand)
+                        {
+                            WorldGen.KillTile(X + i, Y + j, noItem: true);
+                            continue;
+                        }
+
+                        if (WorldGen.genRand.NextFloat() < 0.525f)
+                        {
+                            WorldGen.KillTile(X + i, Y + j, noItem: true);
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void TrenchSmoothing(int X, int Y, int width, int depth, int loop = 1)
+        {
+            for (int l = 0; l < loop; l++)
+            {
+                for (int i = -width; i <= width; i++)
+                {
+                    for (int j = 0; j <= depth; j++)
+                    {
+                        if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                        {
+                            int tileCount = WorldgenTools.CheckTiles(X + i, Y + j);
+
+                            if (tileCount < 4)
+                            {
+                                WorldGen.KillTile(X + i, Y + j, noItem: true);
+                            }
+                            else if (tileCount > 4)
+                            {
+                                WorldGen.PlaceTile(X + i, Y + j, TileID.HardenedSand);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void TrenchFilling(int X, int Y, int width, int depth)
+        {
+            for (int i = X - width; i <= X + width; i++)
+            {
+                for (int j = Y; j <= Y + depth; j++)
+                {
+                    if (IsInEllipse(X, Y, width, depth, i, j))
+                    {
+                        Tile tile = Main.tile[i, j];
+
+                        tile.LiquidType = LiquidID.Water;
+						tile.LiquidAmount = byte.MaxValue;
                     }
                 }
             }
@@ -163,7 +186,7 @@ namespace IAmLostInASea.Content.Generation
         public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
 		{
 			//Add the biome in the worldgen task
-			int TrenchIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Micro Biomes"));
+			int TrenchIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Remove Broken Traps"));
 			if (TrenchIndex != -1)
 			{
 				tasks.Insert(TrenchIndex + 1, new PassLegacy("Trench Generation", TrenchGen));
