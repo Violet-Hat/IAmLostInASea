@@ -67,7 +67,7 @@ namespace IAmLostInASea.Content.Generation
 
                 for (int j = 0; j <= depth; j++)
                 {
-                    if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    if (WorldgenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
                     {
                         if (Y + j < limit)
                         {
@@ -89,7 +89,7 @@ namespace IAmLostInASea.Content.Generation
             {
                 for (int j = 0; j <= depth; j++)
                 {
-                    if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    if (WorldgenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
                     {
                         if (Main.tile[X + i, Y + j].TileType == TileID.Sand)
                         {
@@ -114,7 +114,7 @@ namespace IAmLostInASea.Content.Generation
                 {
                     for (int j = 0; j <= depth; j++)
                     {
-                        if (IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                        if (WorldgenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
                         {
                             int tileCount = WorldgenTools.CheckTiles(X + i, Y + j);
 
@@ -138,7 +138,7 @@ namespace IAmLostInASea.Content.Generation
             {
                 for (int j = Y; j <= Y + depth; j++)
                 {
-                    if (IsInEllipse(X, Y, width, depth, i, j))
+                    if (WorldgenTools.IsInEllipse(X, Y, width, depth, i, j))
                     {
                         Tile tile = Main.tile[i, j];
 
@@ -171,16 +171,7 @@ namespace IAmLostInASea.Content.Generation
             return Y;
         }
 
-        public static bool IsInEllipse(int H, int K, int A, int B, int X, int Y)
-        {
-            double powXH = Math.Pow(X - H, 2);
-            double powYK = Math.Pow(Y - K, 2);
-            double powA = Math.Pow(A, 2);
-            double powB = Math.Pow(B, 2);
-
-            return (powXH / powA) + (powYK / powB) <= 1;
-        }
-
+        /*
         public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
 		{
 			//Add the biome in the worldgen task
@@ -190,5 +181,6 @@ namespace IAmLostInASea.Content.Generation
 				tasks.Insert(TrenchIndex + 1, new PassLegacy("Trench Generation", TrenchGen));
 			}
 		}
+        */
     }
 }

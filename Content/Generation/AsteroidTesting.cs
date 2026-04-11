@@ -61,6 +61,7 @@ namespace IAmLostInASea.Content.Generation
             }));
         }
 
+        /*
         public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
 		{
 			//Add the biome in the worldgen task
@@ -70,5 +71,6 @@ namespace IAmLostInASea.Content.Generation
 				tasks.Insert(TrenchIndex + 2, new PassLegacy("Asteroid Gen", AsteroidGen));
 			}
 		}
+        */
     }
 }

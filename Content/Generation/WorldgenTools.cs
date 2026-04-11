@@ -132,6 +132,16 @@ namespace IAmLostInASea.Content.Generation
             return count;
         }
 
+		public static bool IsInEllipse(int H, int K, int A, int B, int X, int Y)
+        {
+            double powXH = Math.Pow(X - H, 2);
+            double powYK = Math.Pow(Y - K, 2);
+            double powA = Math.Pow(A, 2);
+            double powB = Math.Pow(B, 2);
+
+            return (powXH / powA) + (powYK / powB) <= 1;
+        }
+
 		internal static readonly List<Vector2> Directions = new List<Vector2>()
 		{
 			new Vector2(-1f, -1f),
