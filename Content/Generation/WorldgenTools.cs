@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.WorldBuilding;
-using Terraria.ModLoader;
 using Terraria.ID;
 
 namespace IAmLostInASea.Content.Generation
 {
 	public class WorldgenTools
-	{	
+	{
 		public static bool NoFloatingIslands(int X, int Y)
 		{
 			//Check the houses positions

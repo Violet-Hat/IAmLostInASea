@@ -1,22 +1,21 @@
 using System;
-using System.Collections.Generic;
 using Terraria;
 using Terraria.IO;
 using Terraria.ID;
 using Terraria.WorldBuilding;
 using Terraria.ModLoader;
-using Terraria.GameContent.Generation;
 
 namespace IAmLostInASea.Content.Generation
 {
     public class Trench : ModSystem
     {
-        public static int PlaceTrenchX;
-        public static int PlaceTrenchY;
-        public static int TrenchDepthLimit;
-        public static int MaxWidth;
+        private static int PlaceTrenchX;
+        private static int PlaceTrenchY;
+        private static int TrenchDepthLimit;
+        private static int MaxWidth;
 
-        private void TrenchGen(GenerationProgress progress, GameConfiguration configuration)
+        //Main
+        public static void TrenchGen(GenerationProgress progress, GameConfiguration configuration)
         {
             progress.Message = "Into the abyss you go";
 
@@ -57,6 +56,7 @@ namespace IAmLostInASea.Content.Generation
             WorldGen.PlaceTile(PlaceTrenchX, PlaceTrenchY, TileID.EmeraldGemspark, forced: true);
         }
 
+        //Generate the base of the trench
         public static void TrenchBase(int X, int Y, int width, int depth)
         {
             int limit;
@@ -83,6 +83,7 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
+        //Generate the hole of the trench
         public static void TrenchHole(int X, int Y, int width, int depth)
         {
             for (int i = -width; i <= width; i++)
@@ -106,6 +107,7 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
+        //Smooth the area
         public static void TrenchSmoothing(int X, int Y, int width, int depth, int loop = 1)
         {
             for (int l = 0; l < loop; l++)
@@ -132,6 +134,7 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
+        //Fill the area with water
         public static void TrenchFilling(int X, int Y, int width, int depth)
         {
             for (int i = X - width; i <= X + width; i++)
@@ -149,6 +152,7 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
+        //Find a valid surface
         public static int FindSurface(int X, int startY = 10)
         {
             bool FoundSurface = false;
@@ -170,17 +174,5 @@ namespace IAmLostInASea.Content.Generation
 
             return Y;
         }
-
-        /*
-        public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
-		{
-			//Add the biome in the worldgen task
-			int TrenchIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Remove Broken Traps"));
-			if (TrenchIndex != -1)
-			{
-				tasks.Insert(TrenchIndex + 1, new PassLegacy("Trench Generation", TrenchGen));
-			}
-		}
-        */
     }
 }
