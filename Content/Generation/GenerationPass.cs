@@ -17,6 +17,13 @@ namespace IAmLostInASea.Content.Generation
 				tasks.Insert(TrenchIndex + 1, new PassLegacy("Trench Generation", TrenchTrenchGen));
 			}
             */
+
+			//Add the biome in the worldgen task
+			int DepthsIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Remove Broken Traps"));
+			if (DepthsIndex != -1)
+			{
+				tasks.Insert(DepthsIndex + 1, new PassLegacy("Ocean Depths Generation", OceanDepths.DepthsGen));
+			}
 		}
     }
 }
