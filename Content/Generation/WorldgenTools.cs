@@ -141,6 +141,28 @@ namespace IAmLostInASea.Content.Generation
             return (powXH / powA) + (powYK / powB) <= 1;
         }
 
+        public static int FindSurface(int X, int startY = 10)
+        {
+            bool FoundSurface = false;
+            int attempts = 0;
+
+            int Y = startY;
+
+            while (!FoundSurface && attempts++ < 100000)
+            {
+				while ((!WorldGen.SolidTile(X, Y) || !NoFloatingIslands(X, Y)) && Y <= (Main.worldSurface + 100))
+				{
+					Y++;
+				}
+				if (WorldGen.SolidTile(X, Y) && NoFloatingIslands(X, Y))
+				{
+					FoundSurface = true;
+				}
+			}
+
+            return Y;
+        }
+
 		internal static readonly List<Vector2> Directions = new List<Vector2>()
 		{
 			new Vector2(-1f, -1f),

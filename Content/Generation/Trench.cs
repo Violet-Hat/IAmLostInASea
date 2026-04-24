@@ -32,7 +32,7 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Get the Y spawn point of the trench
-            PlaceTrenchY = FindSurface(PlaceTrenchX) - 25;
+            PlaceTrenchY = WorldgenTools.FindSurface(PlaceTrenchX) - 25;
 
             //How deep it should be
             int depthLimit = Main.maxTilesY - 400;
@@ -63,7 +63,7 @@ namespace IAmLostInASea.Content.Generation
 
             for (int i = -width; i <= width; i++)
             {
-                limit = FindSurface(X + i, Y - 25) + 15;
+                limit = WorldgenTools.FindSurface(X + i, Y - 25) + 15;
 
                 for (int j = 0; j <= depth; j++)
                 {
@@ -150,29 +150,6 @@ namespace IAmLostInASea.Content.Generation
                     }
                 }
             }
-        }
-
-        //Find a valid surface
-        public static int FindSurface(int X, int startY = 10)
-        {
-            bool FoundSurface = false;
-            int attempts = 0;
-
-            int Y = startY;
-
-            while (!FoundSurface && attempts++ < 100000)
-            {
-				while (!WorldGen.SolidTile(X, Y) && Y <= Main.worldSurface)
-				{
-					Y++;
-				}
-				if (WorldGen.SolidTile(X, Y))
-				{
-					FoundSurface = true;
-				}
-			}
-
-            return Y;
         }
     }
 }
