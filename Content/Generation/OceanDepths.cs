@@ -19,7 +19,8 @@ namespace IAmLostInASea.Content.Generation
             Snake,
             HighCurve,
             DeepCurve,
-            Straight
+            Straight,
+            OddBall
         }
 
         public enum Tasks
@@ -76,12 +77,12 @@ namespace IAmLostInASea.Content.Generation
             int controlAmount = 2;
             int distance = (DepthsLimit - PlaceDepthsY) / controlAmount;
 
-            Vector2 p0; //Start
+            Vector2 start;
 
             if (LeftClosestToCenter)
             {
-                p0 = new Vector2(Main.maxTilesX - 120, WorldgenTools.FindSurface(Main.maxTilesX - 120) - 10);
-                ZeroToUlt.Add(p0);
+                start = new Vector2(Main.maxTilesX - 120, WorldgenTools.FindSurface(Main.maxTilesX - 120) - 10);
+                ZeroToUlt.Add(start);
 
                 for (int i = 0; i < controlAmount; i++)
                 {
@@ -96,8 +97,8 @@ namespace IAmLostInASea.Content.Generation
             }
             else
             {
-                p0 = new Vector2(120, WorldgenTools.FindSurface(120) - 10);
-                ZeroToUlt.Add(p0);
+                start = new Vector2(120, WorldgenTools.FindSurface(120) - 10);
+                ZeroToUlt.Add(start);
 
                 for (int i = 0; i < controlAmount; i++)
                 {
@@ -112,20 +113,30 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Generate points
+            int style = 4;
             for (int i = 0; i < (ZeroToUlt.Count - 1); i++)
             {
-                GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1]);
+                if (style == (int)Styles.Snake)
+                    GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
+                else if (style == (int)Styles.HighCurve)
+                    GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
+                else if (style == (int)Styles.DeepCurve)
+                    GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
+                else if (style == (int)Styles.Straight)
+                    GenerateLinearPoints(ZeroToUlt[i], ZeroToUlt[i + 1]);
+                else if (style == (int)Styles.OddBall)
+                    GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
             }
             progress.Set(0.25);
 
             //Tasks
-            GenerationTask(18, 40, -1, (int)Tasks.SandBase, (int)p0.Y + 20);
+            GenerationTask((int)Tasks.SandBase, 20, 40, limit: (int)start.Y + 30);
             progress.Set(0.5);
 
-            GenerationTask(6, 25, -1, (int)Tasks.CaveTunnels, randSize: true);
+            GenerationTask((int)Tasks.CaveTunnels, 6, 25, randSize: true);
             progress.Set(0.75);
 
-            GenerationTask(12, 30, -1, (int)Tasks.FloodTunnels);
+            GenerationTask((int)Tasks.FloodTunnels, 15, 30);
             progress.Set(0.75);
         }
 
@@ -138,14 +149,16 @@ namespace IAmLostInASea.Content.Generation
             return new Vector2(newX, newY);
         }
 
+        //Get the center between two points
+        public static int GetPointsCenter(int x1, int x2) => Math.Min(x1, x2) + (Math.Abs(x1 - x2) / 2);
+
         //Fill the list of positions
-        public static void GenerateCubicPoints(Vector2 p0, Vector2 p3)
+        public static void GenerateCubicPoints(Vector2 p0, Vector2 p3, bool oddBall)
         {
             //Get p1 and p2
-            int cX = (int)(Math.Min(p0.X, p3.X) + (Math.Abs(p0.X - p3.X) / 2));
-
-            Vector2 p1 = new(cX, p0.Y);
-            Vector2 p2 = new(cX, p3.Y);
+            int cX = GetPointsCenter((int)p0.X, (int)p3.X);
+            Vector2 p1 = oddBall ? new Vector2(cX, p3.Y) : new Vector2(cX, p0.Y);
+            Vector2 p2 = oddBall ? new Vector2(cX, p0.Y) : new Vector2(cX, p3.Y);
 
             //Bezier curve
             int segments = 1000;
@@ -161,7 +174,43 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
-        public static void GenerationTask(int s1, int s2, int s3, int task, int limit = -1, bool randSize = false)
+        public static void GenerateQuadraticPoints(Vector2 p0, Vector2 p2, bool highCurve)
+        {
+            //Get p1
+            int cX = GetPointsCenter((int)p0.X, (int)p2.X);
+            Vector2 p1 = highCurve ?  new Vector2(cX, p0.Y) :  new Vector2(cX, p2.Y);
+
+            //Bezier curve
+            int segments = 1000;
+
+            for (int i = 0; i < segments; i++)
+            {
+                if (i % Modulus == 0)
+                {
+                    float t = i / (float)segments;
+                    Vector2 pos = BezierCurve.QuadraticBezier(t, p0, p1, p2);
+                    Positions.Add(pos);
+                }
+            }
+        }
+
+        public static void GenerateLinearPoints(Vector2 p0, Vector2 p1)
+        {
+            //Bezier curve
+            int segments = 1000;
+
+            for (int i = 0; i < segments; i++)
+            {
+                if (i % Modulus == 0)
+                {
+                    float t = i / (float)segments;
+                    Vector2 pos = BezierCurve.LinearBezier(t, p0, p1);
+                    Positions.Add(pos);
+                }
+            }
+        }
+
+        public static void GenerationTask(int task, int s1, int s2, int s3 = -1, int limit = -1, bool randSize = false)
         {
             //Shapes
             Shapes.Circle tunnelShape;

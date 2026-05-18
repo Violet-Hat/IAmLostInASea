@@ -4,7 +4,16 @@ namespace IAmLostInASea.Common
 {
 	public class BezierCurve
 	{
-		public static Vector2 CuadraticBezier(float t, Vector2 p0, Vector2 p1, Vector2 p2)
+		public static Vector2 LinearBezier(float t, Vector2 p0, Vector2 p1)
+		{
+			float a = 1 - t;
+
+			Vector2 p = a * p0;
+			p += t * p1;
+			return p;
+		}
+
+		public static Vector2 QuadraticBezier(float t, Vector2 p0, Vector2 p1, Vector2 p2)
 		{
 			float a = 1 - t;
 			float aa = a * a;

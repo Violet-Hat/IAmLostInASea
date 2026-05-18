@@ -21,12 +21,12 @@ namespace IAmLostInASea.Content.Generation
 			}
             */
 
-			//Re-locate the Aether to avoid the Ancient Swamps
+			//Re-locate the Aether to avoid the ocean depths
             int shimmerIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Shimmer"));
             tasks[shimmerIndex] = new PassLegacy("Shimmer", (progress, config) =>
             {
                 int MinY = (int)(Main.maxTilesY * 0.65);
-                int MaxY = (int)(Main.maxTilesY * 0.75);
+                int MaxY = (int)(Main.maxTilesY * 0.7);
 
                 if (MaxY > Main.maxTilesY - 200)
                 {
@@ -37,7 +37,8 @@ namespace IAmLostInASea.Content.Generation
                     MaxY = MinY + 50;
                 }
 
-                int AetherX = GenVars.dungeonSide < 0 ? Main.maxTilesX - 150 : 150;
+                int xRand = WorldGen.genRand.Next(150, 250);
+                int AetherX = GenVars.dungeonSide < 0 ? Main.maxTilesX - xRand : xRand;
                 int AetherY = WorldGen.genRand.Next(MinY, MaxY);
                 
                 //anniversary lobotomy
@@ -57,7 +58,8 @@ namespace IAmLostInASea.Content.Generation
                 //Fail-safe
                 while (!WorldGen.ShimmerMakeBiome(AetherX, AetherY))
                 {
-                    AetherX = (GenVars.dungeonSide < 0) ? (int)(Main.maxTilesX * 0.95f) : (int)(Main.maxTilesX * 0.05f);
+                    xRand = WorldGen.genRand.Next(150, 250);
+                    AetherX = GenVars.dungeonSide < 0 ? Main.maxTilesX - xRand : xRand;
                     AetherY = WorldGen.genRand.Next(MinY, MaxY);
                 }
 
@@ -68,6 +70,7 @@ namespace IAmLostInASea.Content.Generation
                 GenVars.structures.AddProtectedStructure(new Rectangle(AetherX - ProtectionSize / 2, AetherY - ProtectionSize / 2, ProtectionSize, ProtectionSize));
             });
 
+            //Ocean depths
 			int DepthsIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Micro Biomes"));
 			if (DepthsIndex != -1)
 			{
