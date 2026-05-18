@@ -18,7 +18,7 @@ namespace IAmLostInASea.Content.Generation
         {
             Snake,
             HighCurve,
-            DeepCurve,
+            LowCurve,
             Straight,
             OddBall
         }
@@ -120,7 +120,7 @@ namespace IAmLostInASea.Content.Generation
                     GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
                 else if (style == (int)Styles.HighCurve)
                     GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
-                else if (style == (int)Styles.DeepCurve)
+                else if (style == (int)Styles.LowCurve)
                     GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
                 else if (style == (int)Styles.Straight)
                     GenerateLinearPoints(ZeroToUlt[i], ZeroToUlt[i + 1]);
