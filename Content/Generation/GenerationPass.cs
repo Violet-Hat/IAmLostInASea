@@ -15,15 +15,6 @@ namespace IAmLostInASea.Content.Generation
             bool depthsGeneration = ModContent.GetInstance<AEWorldGenConfig>().GenerateOceanDepths;
             //bool trenchGeneration = ModContent.GetInstance<AEWorldGenConfig>().GenerateOceanicTrench;
 
-            /*
-			//Add the biome in the worldgen task
-			int TrenchIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Remove Broken Traps"));
-			if (TrenchIndex != -1 && trenchGeneration)
-			{
-				tasks.Insert(TrenchIndex + 1, new PassLegacy("Trench Generation", TrenchTrenchGen));
-			}
-            */
-
             //Shimmer relocation and Ocean Depths generation
             if (depthsGeneration)
             {
@@ -75,12 +66,17 @@ namespace IAmLostInASea.Content.Generation
                     int ProtectionSize = 200;
                     GenVars.structures.AddProtectedStructure(new Rectangle(AetherX - ProtectionSize / 2, AetherY - ProtectionSize / 2, ProtectionSize, ProtectionSize));
                 });
+            }
 
-                //Ocean depths
-                int DepthsIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Larva"));
-                if (DepthsIndex != -1)
+            //Ocean biomes
+            int i = 1;
+            int OceanBiomeIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Larva"));
+
+            if (OceanBiomeIndex != -1)
+            {
+                if (depthsGeneration)
                 {
-                    tasks.Insert(DepthsIndex + 1, new PassLegacy("Ocean Depths Generation", OceanDepths.DepthsGen));
+                    tasks.Insert(OceanBiomeIndex + i, new PassLegacy("Ocean Depths Generation", OceanDepths.DepthsGen));
                 }
             }
 		}

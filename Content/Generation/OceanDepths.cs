@@ -8,28 +8,12 @@ using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
 
 using IAmLostInASea.Common;
+using IAmLostInASea.Enums;
 
 namespace IAmLostInASea.Content.Generation
 {
     public class OceanDepths : ModSystem
     {
-        //Enums of generation styles and tasks
-        public enum Styles
-        {
-            Snake,
-            HighCurve,
-            LowCurve,
-            Straight,
-            OddBall
-        }
-
-        public enum Tasks
-        {
-            SandBase,
-            CaveTunnels,
-            FloodTunnels
-        }
-
         //Generation values
         private static int DepthsLeftX;
         private static int DepthsRightX;
@@ -113,24 +97,28 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Generate points
-            int style = WorldGen.genRand.Next(4);
+            int style = WorldGen.genRand.Next(5);
             for (int i = 0; i < (ZeroToUlt.Count - 1); i++)
             {
                 switch (style)
                 {
-                    case (int)Styles.Snake:
+                    case (int)DepthsStyles.Snake:
                         GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
                         break;
                     
-                    case (int)Styles.HighCurve:
+                    case (int)DepthsStyles.HighCurve:
                         GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
                         break;
 
-                    case (int)Styles.LowCurve:
+                    case (int)DepthsStyles.LowCurve:
                         GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
                         break;
                     
-                    case (int)Styles.OddBall:
+                    case (int)DepthsStyles.Straight:
+                        GenerateLinearPoints(ZeroToUlt[i], ZeroToUlt[i + 1]);
+                        break;
+                    
+                    case (int)DepthsStyles.OddBall:
                         GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
                         break;
                 }
@@ -138,13 +126,13 @@ namespace IAmLostInASea.Content.Generation
             progress.Set(0.25);
 
             //Tasks
-            GenerationTask((int)Tasks.SandBase, 25, 40, limit: (int)start.Y + 45);
+            GenerationTask((int)DepthsTasks.SandBase, 25, 40);
             progress.Set(0.5);
 
-            GenerationTask((int)Tasks.CaveTunnels, 10, 25);
+            GenerationTask((int)DepthsTasks.CaveTunnels, 10, 25);
             progress.Set(0.75);
 
-            GenerationTask((int)Tasks.FloodTunnels, 20, 30);
+            GenerationTask((int)DepthsTasks.FloodTunnels, 20, 30);
         }
 
         //Get a vector2 with a slight randomized Y value
@@ -217,18 +205,20 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
-        public static void GenerationTask(int task, int s1, int s2, int s3 = -1, int limit = -1, bool randSize = false)
+        public static void GenerationTask(int task, int s1, int s2, int s3 = -1, bool randSize = false)
         {
             //Shapes
             Shapes.Circle tunnelShape;
             Shapes.Circle caveShape = (s3 == -1) ? new Shapes.Circle(s2) : new Shapes.Circle(s2, s3);
 
             //Tasks
-            if (task == (int)Tasks.SandBase)
+            if (task == (int)DepthsTasks.SandBase)
             {
                 //Place sand base for tunnels
                 foreach (Vector2 position in Positions)
                 {
+                    int limit = WorldGenTools.FindSurface((int)position.X) + s1 + 10;
+
                     int extraSize = randSize ? WorldGen.genRand.Next(MaxRandSize) : 0;
                     tunnelShape = new Shapes.Circle(s1 + extraSize);
 
@@ -261,7 +251,7 @@ namespace IAmLostInASea.Content.Generation
                     ]));
                 }
             }
-            else if (task == (int)Tasks.CaveTunnels)
+            else if (task == (int)DepthsTasks.CaveTunnels)
             {
                 //Create tunnels
                 foreach (Vector2 position in Positions)
@@ -271,6 +261,7 @@ namespace IAmLostInASea.Content.Generation
 
                     WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
                     [
+                        new Modifiers.NotTouching(false, TileID.Containers),
                         new Actions.ClearTile(),
                     ]));
                 }
@@ -280,11 +271,12 @@ namespace IAmLostInASea.Content.Generation
                 {
                     WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
                     [
+                        new Modifiers.NotTouching(false, TileID.Containers),
                         new Actions.ClearTile(),
                     ]));
                 }
             }
-            else if (task == (int)Tasks.FloodTunnels)
+            else if (task == (int)DepthsTasks.FloodTunnels)
             {
                 //Flood tunnels
                 foreach (Vector2 position in Positions)

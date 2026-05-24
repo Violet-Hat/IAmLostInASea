@@ -5,150 +5,208 @@ using Terraria.ID;
 using Terraria.WorldBuilding;
 using Terraria.ModLoader;
 
+using IAmLostInASea.Enums;
+
 namespace IAmLostInASea.Content.Generation
 {
     public class Trench : ModSystem
     {
+        //Generation values
         private static int PlaceTrenchX;
         private static int PlaceTrenchY;
         private static int TrenchDepthLimit;
-        private static int MaxWidth;
 
-        //Main
+        private static readonly int MaxWidth = Main.maxTilesX >= 8400 ? 85 : Main.maxTilesX >= 6400 ? 80 : 75;
+        private static int HighestPoint;
+
+        //Main method
         public static void TrenchGen(GenerationProgress progress, GameConfiguration configuration)
         {
             progress.Message = "Into the abyss you go";
 
-            MaxWidth = Main.maxTilesX >= 8400 ? 60 : Main.maxTilesX >= 6400 ? 55 : 50;
-
             //Get the X spawn point of the trench
             if (GenVars.dungeonSide == -1)
             {
-                PlaceTrenchX = (int)(Main.maxTilesX - 75 - (MaxWidth * 1.25f));
+                PlaceTrenchX = 50 + MaxWidth;
             }
             else
             {
-                PlaceTrenchX = (int)(75 + (MaxWidth * 1.25f));
+                PlaceTrenchX = Main.maxTilesX - 50 - MaxWidth;
             }
 
             //Get the Y spawn point of the trench
             PlaceTrenchY = WorldGenTools.FindSurface(PlaceTrenchX) - 25;
 
+            //Get the highest point
+            int leftY = WorldGenTools.FindSurface(PlaceTrenchX - MaxWidth);
+            int rightY = WorldGenTools.FindSurface(PlaceTrenchX + MaxWidth);
+
+            HighestPoint = Math.Min(leftY, rightY) - 25;
+
             //How deep it should be
-            int depthLimit = Main.maxTilesY - 400;
+            int depthLimit = Main.maxTilesY - 370;
             TrenchDepthLimit = Math.Abs(PlaceTrenchY - depthLimit);
 
             //Place a solid base of hardened sand
-            TrenchBase(PlaceTrenchX, PlaceTrenchY, MaxWidth + 20, TrenchDepthLimit + 30);
+            TrenchBase(PlaceTrenchX, PlaceTrenchY, MaxWidth, TrenchDepthLimit);
             progress.Set(0.25);
 
             //Noise
-            TrenchHole(PlaceTrenchX, PlaceTrenchY, MaxWidth, TrenchDepthLimit);
+            TrenchHole(PlaceTrenchX, PlaceTrenchY, MaxWidth - 15, TrenchDepthLimit - 20);
             progress.Set(0.5);
 
             //Smooth the noise
-            TrenchSmoothing(PlaceTrenchX, PlaceTrenchY, MaxWidth + 5, TrenchDepthLimit + 10, 4);
+            TrenchSmoothing(PlaceTrenchX, PlaceTrenchY, MaxWidth, TrenchDepthLimit, 5);
             progress.Set(0.75);
 
             //Fill with water
-            TrenchFilling(PlaceTrenchX, PlaceTrenchY, MaxWidth + 5, TrenchDepthLimit + 10);
-
-            WorldGen.PlaceTile(PlaceTrenchX, PlaceTrenchY, TileID.EmeraldGemspark, forced: true);
+            TrenchFilling(PlaceTrenchX, PlaceTrenchY, MaxWidth, TrenchDepthLimit);
         }
 
-        //Generate the base of the trench
-        public static void TrenchBase(int X, int Y, int width, int depth)
+        //Helper method : Generate the base of the trench
+        private static void TrenchBase(int x, int y, int width, int depth)
         {
             int limit;
 
-            for (int i = -width; i <= width; i++)
+            for (int i = x - width; i <= x + width; i++)
             {
-                limit = WorldGenTools.FindSurface(X + i, Y - 25) + 15;
+                //Limit to avoid tiles being placed above the ocean
+                limit = WorldGenTools.FindSurface(i, HighestPoint) + 15;
 
-                for (int j = 0; j <= depth; j++)
+                for (int j = y; j <= y + depth; j++)
                 {
-                    if (WorldGenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    if (WorldGenTools.IsInEllipse(x, y, width, depth, i, j))
                     {
-                        if (Y + j < limit)
+                        Tile tile = Framing.GetTileSafely(i, j);
+
+                        //Replace or place tile
+                        if (tile.HasTile)
                         {
-                            continue;
+                            tile.TileType = TileID.HardenedSand;
                         }
-
-                        WorldGen.PlaceTile(X + i, Y + j, TileID.HardenedSand, forced: true);
-                        WorldGen.SlopeTile(X + i, Y + j);
-
-                        WorldGen.KillWall(X + i, Y + j); //I hage wall
+                        else if (j > limit)
+                        {
+                            WorldGen.PlaceTile(i, j, TileID.HardenedSand);
+                        }
+                        
+                        //Slope and kill wall
+                        WorldGen.SlopeTile(i, j);
+                        WorldGen.KillWall(i, j);
                     }
                 }
             }
         }
 
-        //Generate the hole of the trench
-        public static void TrenchHole(int X, int Y, int width, int depth)
+        //Helper method : Generate caves in the trench
+        private static void TrenchHole(int x, int y, int width, int depth)
         {
-            for (int i = -width; i <= width; i++)
-            {
-                for (int j = 0; j <= depth; j++)
-                {
-                    if (WorldGenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
-                    {
-                        if (Main.tile[X + i, Y + j].TileType == TileID.Sand)
-                        {
-                            WorldGen.KillTile(X + i, Y + j, noItem: true);
-                            continue;
-                        }
+            //Randomize a style for the caves
+            int style = 2;
 
-                        if (WorldGen.genRand.NextFloat() < 0.525f)
+            int seed = WorldGen.genRand.Next();
+            int octaves = 5;
+
+            float smooth = 80f;
+            float clearChance = 0.65f;
+
+            float caveDivX = GetSmootherX(style);
+            float caveDivY = GetSmootherY(style);
+
+            for (int i = x - width; i <= x + width; i++)
+            {
+                for (int j = y; j <= y + depth; j++)
+                {
+                    if (WorldGenTools.IsInEllipse(x, y, width, depth, i, j))
+                    {
+                        //Perlin noise values
+                        float horizontalOffsetNoise = WorldGenTools.PerlinNoise2D(i / smooth, j / smooth, octaves, unchecked(seed + 1)) * 0.01f;
+                        float cavePerlinValue = WorldGenTools.PerlinNoise2D(i / caveDivX, j / caveDivY, octaves, seed) + 0.5f + horizontalOffsetNoise;
+                        float cavePerlinValue2 = WorldGenTools.PerlinNoise2D(i / caveDivX, j / caveDivY, octaves, unchecked(seed - 1)) + 0.5f;
+                        float caveNoiseMap = (cavePerlinValue + cavePerlinValue2) * 0.5f;
+                        float caveCreationThreshold = horizontalOffsetNoise * 3.5f + 0.2f;
+
+                        //Remove tiles based on the noise and a float value
+                        bool noiseCheck = caveNoiseMap * caveNoiseMap > caveCreationThreshold;
+                        bool floatCheck = WorldGen.genRand.NextFloat() < clearChance;
+
+                        if (noiseCheck && floatCheck)
                         {
-                            WorldGen.KillTile(X + i, Y + j, noItem: true);
+                            WorldGen.KillTile(i, j, noItem: true);
                         }
                     }
                 }
             }
         }
 
-        //Smooth the area
-        public static void TrenchSmoothing(int X, int Y, int width, int depth, int loop = 1)
+        //Helper method : Smooth the area
+        private static void TrenchSmoothing(int x, int y, int width, int depth, int loop = 1)
         {
             for (int l = 0; l < loop; l++)
             {
-                for (int i = -width; i <= width; i++)
+                for (int i = x - width; i <= x + width; i++)
                 {
-                    for (int j = 0; j <= depth; j++)
+                    for (int j = y; j <= y + depth; j++)
                     {
-                        if (WorldGenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
-                        {
-                            int tileCount = WorldGenTools.CheckTiles(X + i, Y + j);
+                        int tileCount = WorldGenTools.MooreTiles(i, j);
 
-                            if (tileCount < 4)
-                            {
-                                WorldGen.KillTile(X + i, Y + j, noItem: true);
-                            }
-                            else if (tileCount > 4)
-                            {
-                                WorldGen.PlaceTile(X + i, Y + j, TileID.HardenedSand);
-                            }
+                        if (tileCount < 4)
+                        {
+                            WorldGen.KillTile(i, j, noItem: true);
+                        }
+                        else if (tileCount > 4)
+                        {
+                            WorldGen.PlaceTile(i, j, TileID.HardenedSand);
                         }
                     }
                 }
             }
         }
 
-        //Fill the area with water
-        public static void TrenchFilling(int X, int Y, int width, int depth)
+        //Helper method : Fill the area with water
+        private static void TrenchFilling(int x, int y, int width, int depth)
         {
-            for (int i = X - width; i <= X + width; i++)
+            for (int i = x - width; i <= x + width; i++)
             {
-                for (int j = Y; j <= Y + depth; j++)
+                for (int j = y; j <= y + depth; j++)
                 {
-                    if (WorldGenTools.IsInEllipse(X, Y, width, depth, i, j))
-                    {
-                        Tile tile = Main.tile[i, j];
+                    Tile tile = Framing.GetTileSafely(i, j);
 
-                        tile.LiquidType = LiquidID.Water;
-						tile.LiquidAmount = byte.MaxValue;
-                    }
+                    tile.LiquidType = LiquidID.Water;
+                    tile.LiquidAmount = byte.MaxValue;
                 }
+            }
+        }
+
+        //Helper methods : Get a "smoother" for X and Y
+        private static float GetSmootherX(int style)
+        {
+            if (style == (int)TrenchStyle.Vertical)
+            {
+                return 450f;
+            }
+            else if (style == (int)TrenchStyle.Horizontal)
+            {
+                return 850f;
+            }
+            else
+            {
+                return 650f;
+            }
+        }
+
+        private static float GetSmootherY(int style)
+        {
+            if (style == (int)TrenchStyle.Vertical)
+            {
+                return 850f;
+            }
+            else if (style == (int)TrenchStyle.Horizontal)
+            {
+                return 450f;
+            }
+            else
+            {
+                return 650f;
             }
         }
     }

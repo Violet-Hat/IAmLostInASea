@@ -3,65 +3,46 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.WorldBuilding;
-using Terraria.ID;
+
+using IAmLostInASea.Common.Tiles;
 
 namespace IAmLostInASea.Content.Generation
 {
 	public class WorldGenTools
 	{
-		public static bool NoFloatingIslands(int X, int Y)
+		public static bool NoFloatingIslands(int x, int y)
 		{
 			//Check the houses positions
 			for (int i = 0; i < GenVars.numIslandHouses; i++)
 			{
-				if (X > (GenVars.floatingIslandHouseX[i] - 100) && X < (GenVars.floatingIslandHouseX[i] + 100))
+				if (x > (GenVars.floatingIslandHouseX[i] - 100) && x < (GenVars.floatingIslandHouseX[i] + 100))
 				{
-					if (Y > (GenVars.floatingIslandHouseY[i] - 50) && Y < (GenVars.floatingIslandHouseY[i] + 50))
+					if (y > (GenVars.floatingIslandHouseY[i] - 50) && y < (GenVars.floatingIslandHouseY[i] + 50))
 					{
 						return false;
 					}
 				}
 			}
 
-			if (IsFloatingIslandTile(X, Y))
+			if (IsBiomeTile.IsFloatingIslandTile(x, y))
 			{
 				return false;
 			}
 
 			return true;
 		}
-
-		public static bool IsFloatingIslandTile(int X, int Y)
-		{
-			return Main.tile[X, Y].TileType == TileID.Cloud ||
-				Main.tile[X, Y].TileType == TileID.RainCloud ||
-				Main.tile[X, Y].TileType == TileID.SnowCloud ||
-				Main.tile[X, Y].TileType == TileID.Sunplate;
-		}
-
-		public static bool IsBeachTile(int X, int Y)
-		{
-			return Main.tile[X, Y].TileType == TileID.Sand ||
-				Main.tile[X, Y].TileType == TileID.HardenedSand ||
-				Main.tile[X, Y].TileType == TileID.ShellPile;
-		}
 		
-		public static bool IsItPlaceable(Point origin, int r, StructureMap structures)
+		public static bool IsItPlaceable(Point origin, int r)
         {
-			//Generate the new radius with padding, the diameter and the area
-			int radius = r + 15;
-			int diameter = radius * 2;
-			Rectangle area = new Rectangle(origin.X - radius, origin.Y - radius, diameter, diameter);
-
 			//Check if it is inside the world borders
 			if (!WorldGen.InWorld(origin.X, origin.Y, r))
 			{
 				return false;
 			}
 
-			for (int i = area.Left; i < area.Right; i++)
+			for (int i = origin.X - r; i <= origin.X + r; i++)
 			{
-				for (int j = area.Top; j < area.Bottom; j++)
+				for (int j = origin.Y - r; j <= origin.Y + r; j++)
 				{
 					if (i < 41 || i > Main.maxTilesX - 42 || j < 41 || j > Main.maxTilesY)
 					{
@@ -71,38 +52,34 @@ namespace IAmLostInASea.Content.Generation
 			}
 			
 			//Check if it is far away from the islands
-			for (int i = area.Left; i < area.Right; i++)
+			for (int i = origin.X - r; i <= origin.X + r; i++)
 			{
-				for (int j = area.Top; j < area.Bottom; j++)
+				for (int j = origin.Y - r; j <= origin.Y + r; j++)
 				{
-					if (NoFloatingIslands(i, j))
+					if (!NoFloatingIslands(i, j))
 					{
 						return false;
 					}
 				}
 			}
 			
-			//Check if it can be placed here using the structure map
-            if (!structures.CanPlace(area))
-            {
-                return false;
-            }
-			
 			//Check for solids
 			int count = 0;
 			
-            for (int i = area.Left; i < area.Right; i++)
+            for (int i = origin.X - r; i <= origin.X + r; i++)
 			{
-				for (int j = area.Top; j < area.Bottom; j++)
+				for (int j = origin.Y - r; j <= origin.Y + r; j++)
 				{
-					if(Main.tile[i, j].HasTile && Main.tileSolid[Main.tile[i, j].TileType])
+					Tile tile = Framing.GetTileSafely(i, j);
+
+					if(tile.HasTile && Main.tileSolid[tile.TileType])
 					{
 						count++;
 					}
                 }
             }
 			
-			if (count > 4)
+			if (count > 9)
             {
                 return false;
             }
@@ -110,7 +87,7 @@ namespace IAmLostInASea.Content.Generation
             return true;
         }
 
-		static public int CheckTiles(int x, int y)
+		static public int MooreTiles(int x, int y)
         {
             int count = 0;
 
@@ -120,7 +97,7 @@ namespace IAmLostInASea.Content.Generation
                 {
                     if (nebX != x || nebY != y)
                     {
-                        if (Main.tile[nebX, nebY].HasTile)
+                        if (Framing.GetTileSafely(nebX, nebY).HasTile)
                         {
                             count++;
                         }
@@ -131,41 +108,41 @@ namespace IAmLostInASea.Content.Generation
             return count;
         }
 
-		public static bool IsInEllipse(int H, int K, int A, int B, int X, int Y)
+		public static bool IsInEllipse(int h, int k, int a, int b, int x, int y)
         {
-            double powXH = Math.Pow(X - H, 2);
-            double powYK = Math.Pow(Y - K, 2);
-            double powA = Math.Pow(A, 2);
-            double powB = Math.Pow(B, 2);
+            double powXH = Math.Pow(x - h, 2);
+            double powYK = Math.Pow(y - k, 2);
+            double powA = Math.Pow(a, 2);
+            double powB = Math.Pow(b, 2);
 
             return (powXH / powA) + (powYK / powB) <= 1;
         }
 
-        public static int FindSurface(int X, int startY = 10)
+        public static int FindSurface(int x, int startY = -1)
         {
             bool FoundSurface = false;
             int attempts = 0;
 
-            int Y = startY;
+            int y = (startY == -1) ? (int)(Main.maxTilesY * 0.15f) : startY;
 
             while (!FoundSurface && attempts++ < 100000)
             {
-				while ((!WorldGen.SolidTile(X, Y) || !NoFloatingIslands(X, Y)) && Y <= (Main.worldSurface + 100))
+				while ((!WorldGen.SolidTile(x, y) || !NoFloatingIslands(x, y)) && y <= (Main.worldSurface + 100))
 				{
-					Y++;
+					y++;
 				}
-				if (WorldGen.SolidTile(X, Y) && NoFloatingIslands(X, Y))
+				if (WorldGen.SolidTile(x, y) && NoFloatingIslands(x, y))
 				{
 					FoundSurface = true;
 				}
 			}
 
-            return Y;
+            return y;
         }
 
-		internal static readonly List<Vector2> Directions = new List<Vector2>()
-		{
-			new Vector2(-1f, -1f),
+		internal static readonly List<Vector2> Directions =
+        [
+            new Vector2(-1f, -1f),
 			new Vector2(1f, -1f),
 			new Vector2(-1f, 1f),
 			new Vector2(1f, 1f),
@@ -173,7 +150,7 @@ namespace IAmLostInASea.Content.Generation
 			new Vector2(-1f, 0f),
 			new Vector2(0f, 1f),
 			new Vector2(1f, 0f),
-		};
+		];
 		
 		public static float PerlinNoise2D(float x, float y, int octaves, int seed)
 		{
