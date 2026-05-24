@@ -11,3 +11,19 @@ Items: {
 			'''
 	}
 }
+
+Configs: {
+	AEWorldGenConfig: {
+		DisplayName: World Generation Config
+
+		GenerateOceanDepths: {
+			Label: Generate Ocean Depths
+			Tooltip: ""
+		}
+
+		GenerateOceanicTrench: {
+			Label: Generate Oceanic Trench
+			Tooltip: ""
+		}
+	}
+}

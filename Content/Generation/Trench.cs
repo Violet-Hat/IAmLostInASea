@@ -32,7 +32,7 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Get the Y spawn point of the trench
-            PlaceTrenchY = WorldgenTools.FindSurface(PlaceTrenchX) - 25;
+            PlaceTrenchY = WorldGenTools.FindSurface(PlaceTrenchX) - 25;
 
             //How deep it should be
             int depthLimit = Main.maxTilesY - 400;
@@ -63,11 +63,11 @@ namespace IAmLostInASea.Content.Generation
 
             for (int i = -width; i <= width; i++)
             {
-                limit = WorldgenTools.FindSurface(X + i, Y - 25) + 15;
+                limit = WorldGenTools.FindSurface(X + i, Y - 25) + 15;
 
                 for (int j = 0; j <= depth; j++)
                 {
-                    if (WorldgenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    if (WorldGenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
                     {
                         if (Y + j < limit)
                         {
@@ -90,7 +90,7 @@ namespace IAmLostInASea.Content.Generation
             {
                 for (int j = 0; j <= depth; j++)
                 {
-                    if (WorldgenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                    if (WorldGenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
                     {
                         if (Main.tile[X + i, Y + j].TileType == TileID.Sand)
                         {
@@ -116,9 +116,9 @@ namespace IAmLostInASea.Content.Generation
                 {
                     for (int j = 0; j <= depth; j++)
                     {
-                        if (WorldgenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
+                        if (WorldGenTools.IsInEllipse(X, Y, width, depth, X + i, Y + j))
                         {
-                            int tileCount = WorldgenTools.CheckTiles(X + i, Y + j);
+                            int tileCount = WorldGenTools.CheckTiles(X + i, Y + j);
 
                             if (tileCount < 4)
                             {
@@ -141,7 +141,7 @@ namespace IAmLostInASea.Content.Generation
             {
                 for (int j = Y; j <= Y + depth; j++)
                 {
-                    if (WorldgenTools.IsInEllipse(X, Y, width, depth, i, j))
+                    if (WorldGenTools.IsInEllipse(X, Y, width, depth, i, j))
                     {
                         Tile tile = Main.tile[i, j];
 

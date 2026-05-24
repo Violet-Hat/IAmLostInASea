@@ -7,7 +7,7 @@ using Terraria.ID;
 
 namespace IAmLostInASea.Content.Generation
 {
-	public class WorldgenTools
+	public class WorldGenTools
 	{
 		public static bool NoFloatingIslands(int X, int Y)
 		{

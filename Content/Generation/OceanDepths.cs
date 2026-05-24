@@ -36,7 +36,7 @@ namespace IAmLostInASea.Content.Generation
         private static int PlaceDepthsY;
         private static int DepthsLimit;
         
-        readonly static int Modulus = 15;
+        readonly static int Modulus = 10;
         readonly static int MaxRandSize = 4;
 
         private static List<Vector2> ZeroToUlt; //From p0 to the last point
@@ -81,7 +81,7 @@ namespace IAmLostInASea.Content.Generation
 
             if (LeftClosestToCenter)
             {
-                start = new Vector2(Main.maxTilesX - 120, WorldgenTools.FindSurface(Main.maxTilesX - 120) - 10);
+                start = new Vector2(Main.maxTilesX - 120, WorldGenTools.FindSurface(Main.maxTilesX - 120) - 10);
                 ZeroToUlt.Add(start);
 
                 for (int i = 0; i < controlAmount; i++)
@@ -97,7 +97,7 @@ namespace IAmLostInASea.Content.Generation
             }
             else
             {
-                start = new Vector2(120, WorldgenTools.FindSurface(120) - 10);
+                start = new Vector2(120, WorldGenTools.FindSurface(120) - 10);
                 ZeroToUlt.Add(start);
 
                 for (int i = 0; i < controlAmount; i++)
@@ -113,31 +113,38 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Generate points
-            int style = 4;
+            int style = WorldGen.genRand.Next(4);
             for (int i = 0; i < (ZeroToUlt.Count - 1); i++)
             {
-                if (style == (int)Styles.Snake)
-                    GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
-                else if (style == (int)Styles.HighCurve)
-                    GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
-                else if (style == (int)Styles.LowCurve)
-                    GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
-                else if (style == (int)Styles.Straight)
-                    GenerateLinearPoints(ZeroToUlt[i], ZeroToUlt[i + 1]);
-                else if (style == (int)Styles.OddBall)
-                    GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
+                switch (style)
+                {
+                    case (int)Styles.Snake:
+                        GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
+                        break;
+                    
+                    case (int)Styles.HighCurve:
+                        GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
+                        break;
+
+                    case (int)Styles.LowCurve:
+                        GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
+                        break;
+                    
+                    case (int)Styles.OddBall:
+                        GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
+                        break;
+                }
             }
             progress.Set(0.25);
 
             //Tasks
-            GenerationTask((int)Tasks.SandBase, 20, 40, limit: (int)start.Y + 30);
+            GenerationTask((int)Tasks.SandBase, 25, 40, limit: (int)start.Y + 45);
             progress.Set(0.5);
 
-            GenerationTask((int)Tasks.CaveTunnels, 6, 25, randSize: true);
+            GenerationTask((int)Tasks.CaveTunnels, 10, 25);
             progress.Set(0.75);
 
-            GenerationTask((int)Tasks.FloodTunnels, 15, 30);
-            progress.Set(0.75);
+            GenerationTask((int)Tasks.FloodTunnels, 20, 30);
         }
 
         //Get a vector2 with a slight randomized Y value
@@ -222,14 +229,23 @@ namespace IAmLostInASea.Content.Generation
                 //Place sand base for tunnels
                 foreach (Vector2 position in Positions)
                 {
+                    int extraSize = randSize ? WorldGen.genRand.Next(MaxRandSize) : 0;
+                    tunnelShape = new Shapes.Circle(s1 + extraSize);
+
                     if (position.Y > limit)
                     {
-                        int extraSize = randSize ? WorldGen.genRand.Next(MaxRandSize) : 0;
-                        tunnelShape = new Shapes.Circle(s1 + extraSize);
-                        
                         WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
                         [
                             new Modifiers.Blotches(2, 0.4),
+                            new Actions.SetTile(TileID.HardenedSand),
+                        ]));
+                    }
+                    else
+                    {
+                        WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
+                        [
+                            new Modifiers.Blotches(2, 0.4),
+                            new Modifiers.IsSolid(),
                             new Actions.SetTile(TileID.HardenedSand),
                         ]));
                     }
