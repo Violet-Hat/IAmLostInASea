@@ -16,13 +16,40 @@ Configs: {
 	AEWorldGenConfig: {
 		DisplayName: World Generation Config
 
-		GenerateOceanDepths: {
-			Label: Generate Ocean Depths
+		JungleOceanStyle: {
+			Label: Jungle Side Ocean Cave Style
+			Tooltip:
+				'''
+				Allows you to determine the style of the ocean cave in the jungle side
+				"Random" style will randomize it to be either vanilla or custom
+				"Vanilla" style will generate an ocean cave identical to the one found on the dungeon side
+				"Custom" style will generate a custom made ocean cave
+				Keep in mind that any of these styles will move the shimmer biome to avoid collisions
+				[c/E30B21:WARNING!] The ocean cave will not generate if thorium is enabled
+				'''
+		}
+
+		GuaranteedOceanCave: {
+			Label: Guaranteed Dungeon Side Ocean Cave
+			Tooltip: Keeping this on ensures that the ocean cave on the dungeon side will always generate
+		}
+	}
+
+	JungleOceanStyleEnum: {
+		Random: {
+			Label: Random
 			Tooltip: ""
 		}
 
-		GenerateOceanicTrench: {
-			Label: Generate Oceanic Trench
+		Tooltip: ""
+
+		Vanilla: {
+			Label: Vanilla
+			Tooltip: ""
+		}
+
+		Custom: {
+			Label: Custom
 			Tooltip: ""
 		}
 	}
