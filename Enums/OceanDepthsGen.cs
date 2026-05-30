@@ -1,13 +1,6 @@
 namespace IAmLostInASea.Enums
 {
-    public enum DepthsTasks
-    {
-        SandBase,
-        CaveTunnels,
-        FloodTunnels
-    }
-
-    public enum DepthsStyles
+    public enum DepthsTunnelStyles
     {
         Snake,
         HighCurve,

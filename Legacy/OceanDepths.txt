@@ -19,7 +19,7 @@ namespace IAmLostInASea.Content.Generation
         private static int DepthsRightX;
         private static int PlaceDepthsY;
         private static int DepthsLimit;
-        
+
         readonly static int Modulus = 10;
         readonly static int MaxRandSize = 4;
 
@@ -102,23 +102,23 @@ namespace IAmLostInASea.Content.Generation
             {
                 switch (style)
                 {
-                    case (int)DepthsStyles.Snake:
+                    case (int)DepthsTunnelStyles.Snake:
                         GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
                         break;
-                    
-                    case (int)DepthsStyles.HighCurve:
+
+                    case (int)DepthsTunnelStyles.HighCurve:
                         GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
                         break;
 
-                    case (int)DepthsStyles.LowCurve:
+                    case (int)DepthsTunnelStyles.LowCurve:
                         GenerateQuadraticPoints(ZeroToUlt[i], ZeroToUlt[i + 1], false);
                         break;
-                    
-                    case (int)DepthsStyles.Straight:
+
+                    case (int)DepthsTunnelStyles.Straight:
                         GenerateLinearPoints(ZeroToUlt[i], ZeroToUlt[i + 1]);
                         break;
-                    
-                    case (int)DepthsStyles.OddBall:
+
+                    case (int)DepthsTunnelStyles.OddBall:
                         GenerateCubicPoints(ZeroToUlt[i], ZeroToUlt[i + 1], true);
                         break;
                 }
@@ -126,13 +126,13 @@ namespace IAmLostInASea.Content.Generation
             progress.Set(0.25);
 
             //Tasks
-            GenerationTask((int)DepthsTasks.SandBase, 25, 40);
+            GenerateSandBase(25, 40, 40);
             progress.Set(0.5);
 
-            GenerationTask((int)DepthsTasks.CaveTunnels, 10, 25);
+            GenerateTunnels(10, 25, 25);
             progress.Set(0.75);
 
-            GenerationTask((int)DepthsTasks.FloodTunnels, 20, 30);
+            FloodTunnels(20, 30, 30);
         }
 
         //Get a vector2 with a slight randomized Y value
@@ -173,7 +173,7 @@ namespace IAmLostInASea.Content.Generation
         {
             //Get p1
             int cX = GetPointsCenter((int)p0.X, (int)p2.X);
-            Vector2 p1 = highCurve ?  new Vector2(cX, p0.Y) :  new Vector2(cX, p2.Y);
+            Vector2 p1 = highCurve ? new Vector2(cX, p0.Y) : new Vector2(cX, p2.Y);
 
             //Bezier curve
             int segments = 1000;
@@ -205,101 +205,102 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
-        public static void GenerationTask(int task, int s1, int s2, int s3 = -1, bool randSize = false)
+        private static void GenerateSandBase(int pathSize, int caveWidth, int caveHeight)
         {
             //Shapes
-            Shapes.Circle tunnelShape;
-            Shapes.Circle caveShape = (s3 == -1) ? new Shapes.Circle(s2) : new Shapes.Circle(s2, s3);
+            Shapes.Circle pathShape = new(pathSize);
+            Shapes.Circle caveShape = new(caveWidth, caveHeight);
 
-            //Tasks
-            if (task == (int)DepthsTasks.SandBase)
+            //Values
+            int surfaceLimit;
+            int padding = 10;
+
+            //Place sand base for the paths
+            foreach (Vector2 position in Positions)
             {
-                //Place sand base for tunnels
-                foreach (Vector2 position in Positions)
+                surfaceLimit = WorldGenTools.FindSurface((int)position.X) + pathSize + padding;
+
+                if (position.Y > surfaceLimit)
                 {
-                    int limit = WorldGenTools.FindSurface((int)position.X) + s1 + 10;
-
-                    int extraSize = randSize ? WorldGen.genRand.Next(MaxRandSize) : 0;
-                    tunnelShape = new Shapes.Circle(s1 + extraSize);
-
-                    if (position.Y > limit)
-                    {
-                        WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
-                        [
-                            new Modifiers.Blotches(2, 0.4),
-                            new Actions.SetTile(TileID.HardenedSand),
-                        ]));
-                    }
-                    else
-                    {
-                        WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
-                        [
-                            new Modifiers.Blotches(2, 0.4),
-                            new Modifiers.IsSolid(),
-                            new Actions.SetTile(TileID.HardenedSand),
-                        ]));
-                    }
-                }
-
-                //Place sand base for "caves"
-                for (int i = 1; i < ZeroToUlt.Count; i++)
-                {
-                    WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
+                    WorldUtils.Gen(position.ToPoint(), pathShape, Actions.Chain(
                     [
                         new Modifiers.Blotches(2, 0.4),
                         new Actions.SetTile(TileID.HardenedSand),
                     ]));
                 }
-            }
-            else if (task == (int)DepthsTasks.CaveTunnels)
-            {
-                //Create tunnels
-                foreach (Vector2 position in Positions)
+                else
                 {
-                    int extraSize = randSize ? WorldGen.genRand.Next(MaxRandSize) : 0;
-                    tunnelShape = new Shapes.Circle(s1 + extraSize);
-
-                    WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
+                    WorldUtils.Gen(position.ToPoint(), pathShape, Actions.Chain(
                     [
-                        new Modifiers.NotTouching(false, TileID.Containers),
-                        new Actions.ClearTile(),
-                    ]));
-                }
-
-                //Create "caves"
-                for (int i = 1; i < ZeroToUlt.Count; i++)
-                {
-                    WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
-                    [
-                        new Modifiers.NotTouching(false, TileID.Containers),
-                        new Actions.ClearTile(),
+                        new Modifiers.Blotches(2, 0.4),
+                        new Modifiers.IsSolid(),
+                        new Actions.SetTile(TileID.HardenedSand),
                     ]));
                 }
             }
-            else if (task == (int)DepthsTasks.FloodTunnels)
+
+            //Place sand base for "caves"
+            for (int i = 1; i < ZeroToUlt.Count; i++)
             {
-                //Flood tunnels
-                foreach (Vector2 position in Positions)
-                {
-                    int extraSize = randSize ? WorldGen.genRand.Next(MaxRandSize) : 0;
-                    tunnelShape = new Shapes.Circle(s1 + extraSize);
+                WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
+                [
+                    new Modifiers.Blotches(2, 0.4),
+                    new Actions.SetTile(TileID.HardenedSand),
+                ]));
+            }
+        }
 
-                    WorldUtils.Gen(position.ToPoint(), tunnelShape, Actions.Chain(
-                    [
-                        new Modifiers.IsNotSolid(),
-                        new Actions.SetLiquid(),
-                    ]));
-                }
+        private static void GenerateTunnels(int pathSize, int caveWidth, int caveHeight)
+        {
+            //Shapes
+            Shapes.Circle pathShape = new(pathSize);
+            Shapes.Circle caveShape = new(caveWidth, caveHeight);
 
-                //Flood "caves"
-                for (int i = 1; i < ZeroToUlt.Count; i++)
-                {
-                    WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
-                    [
-                        new Modifiers.IsNotSolid(),
-                        new Actions.SetLiquid(),
-                    ]));
-                }
+            //Create paths
+            foreach (Vector2 position in Positions)
+            {
+                WorldUtils.Gen(position.ToPoint(), pathShape, Actions.Chain(
+                [
+                    new Modifiers.NotTouching(false, TileID.Containers),
+                    new Actions.ClearTile(),
+                ]));
+            }
+
+            //Create "caves"
+            for (int i = 1; i < ZeroToUlt.Count; i++)
+            {
+                WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
+                [
+                    new Modifiers.NotTouching(false, TileID.Containers),
+                    new Actions.ClearTile(),
+                ]));
+            }
+        }
+
+        private static void FloodTunnels(int pathSize, int caveWidth, int caveHeight)
+        {
+            //Shapes
+            Shapes.Circle pathShape = new(pathSize);
+            Shapes.Circle caveShape = new(caveWidth, caveHeight);
+
+            //Flood paths
+            foreach (Vector2 position in Positions)
+            {
+                WorldUtils.Gen(position.ToPoint(), pathShape, Actions.Chain(
+                [
+                    new Modifiers.IsNotSolid(),
+                    new Actions.SetLiquid(),
+                ]));
+            }
+
+            //Flood "caves"
+            for (int i = 1; i < ZeroToUlt.Count; i++)
+            {
+                WorldUtils.Gen(ZeroToUlt[i].ToPoint(), caveShape, Actions.Chain(
+                [
+                    new Modifiers.IsNotSolid(),
+                    new Actions.SetLiquid(),
+                ]));
             }
         }
     }

@@ -6,7 +6,6 @@ using Terraria;
 using ReLogic.Utilities;
 using Microsoft.Xna.Framework;
 using IAmLostInASea.Enums;
-using System.Diagnostics;
 
 namespace IAmLostInASea.Content.Generation
 {
@@ -130,7 +129,7 @@ namespace IAmLostInASea.Content.Generation
             int OceanBiomeIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Micro Biomes"));
             if (OceanBiomeIndex != -1 && JungleOceanCave == (int)JungleOceanStyleEnum.Custom)
             {
-                tasks.Insert(OceanBiomeIndex + 1, new PassLegacy("Ocean Depths Generation", OceanDepths.DepthsGen));
+                tasks.Insert(OceanBiomeIndex + 1, new PassLegacy("Oceanic Depths Generation", OceanicDepths.DepthsGen));
             }
 		}
     }

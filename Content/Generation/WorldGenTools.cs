@@ -118,6 +118,15 @@ namespace IAmLostInASea.Content.Generation
             return (powXH / powA) + (powYK / powB) <= 1;
         }
 
+		public static bool IsInCircle(int x, int y, int cx, int cy, int r)
+		{
+			double powXCX = Math.Pow(x - cx, 2);
+			double powYCY = Math.Pow(y - cy, 2);
+			double powR = Math.Pow(r, 2);
+
+			return powXCX + powYCY <= powR;
+		}
+
         public static int FindSurface(int x, int startY = -1)
         {
             bool FoundSurface = false;
