@@ -1,11 +1,11 @@
 namespace IAmLostInASea.Enums
 {
-    public enum DepthsTunnelStyles
+    public enum TunnelStylesEnum
     {
         Snake,
+        OddBall,
         HighCurve,
         LowCurve,
-        Straight,
-        OddBall
+        Straight
     }
 }

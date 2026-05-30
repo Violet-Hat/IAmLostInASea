@@ -33,7 +33,7 @@ namespace IAmLostInASea.Content.Generation
                 {
                     WorldUtils.Gen(origin, new ModShapes.All(circle), Actions.Chain(
                     [
-                        new Modifiers.IsSolid(), new Actions.PlaceTile((ushort)tileType)
+                        new Modifiers.IsSolid(), new Actions.SetTile((ushort)tileType)
                     ]));
                 }
                 else

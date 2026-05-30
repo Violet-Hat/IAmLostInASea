@@ -11,7 +11,12 @@ namespace IAmLostInASea.Content.Generation.Objects
 
         public void PlaceBase()
         {
-            ShapeHelper.PlaceCircle(origin.ToPoint(), TileID.Sand, WallID.None, radius);
+            for (int i = 0; i < 3; i++)
+            {
+                //To make the lower part thicker
+                Point newOrigin = new((int)origin.X, (int)origin.Y + (5 * i));
+                ShapeHelper.PlaceCircle(newOrigin, TileID.Sand, WallID.None, radius);
+            }
         }
 
         public void PlaceCave()

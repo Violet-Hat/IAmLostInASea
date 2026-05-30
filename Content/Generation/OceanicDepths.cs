@@ -42,17 +42,18 @@ namespace IAmLostInASea.Content.Generation
             }
 
             //Generate tunnel points
-            padding = 120;
-            int entrancePosX = (GenVars.dungeonSide == -1) ? Main.maxTilesX - padding : padding;
+            int xRand = WorldGen.genRand.Next(55, 95);
+            int entrancePosX = (GenVars.dungeonSide == -1) ? Main.maxTilesX - xRand : xRand;
             int entrancePosY = WorldGenTools.FindSurface(entrancePosX) - 5;
 
             Vector2 entrancePosition = new(entrancePosX, entrancePosY);
-            GenerateLinearPoints(entrancePosition, OceanicCaves[0].origin);
 
-            //int style = WorldGen.genRand.Next(5);
+            int style = 4; // WorldGen.genRand.Next(5)
+            GeneratePoints(entrancePosition, OceanicCaves[0].origin, style);
+
             for (int i = 0; i < (OceanicCaves.Count - 1); i++)
             {
-                GenerateLinearPoints(OceanicCaves[i].origin, OceanicCaves[i + 1].origin);
+                GeneratePoints(OceanicCaves[i].origin, OceanicCaves[i + 1].origin, style);
             }
             progress.Set(0.25);
 
@@ -73,9 +74,15 @@ namespace IAmLostInASea.Content.Generation
         {
             int biomePadding = DepthsLength / 4;
 
-            Vector2 cave1 = GetCaveVector(DepthsCenterX - biomePadding, DepthsCenterY - biomePadding);
-            Vector2 cave2 = GetCaveVector(DepthsCenterX + biomePadding, DepthsCenterY - biomePadding);
+            Vector2 cave1 = GetCaveVector(DepthsCenterX + biomePadding, DepthsCenterY - biomePadding);
+            Vector2 cave2 = GetCaveVector(DepthsCenterX - biomePadding, DepthsCenterY - biomePadding);
             Vector2 cave3 = GetCaveVector(DepthsCenterX, DepthsCenterY + biomePadding);
+
+            //Make sure the first cave is the one away from the edge
+            if (GenVars.dungeonSide == -1)
+            {
+                (cave1, cave2) = (cave2, cave1);
+            }
 
             //Randomize the second and third cave
             if (WorldGen.genRand.NextBool())
@@ -94,6 +101,34 @@ namespace IAmLostInASea.Content.Generation
             return new Vector2(centerX + randX, centerY + randY);
         }
 
+        public static int GetPointsCenter(int x1, int x2) => Math.Min(x1, x2) + (Math.Abs(x1 - x2) / 2);
+
+        private static void GeneratePoints(Vector2 start, Vector2 end, int style)
+        {
+            switch (style)
+            {
+                case (int)TunnelStylesEnum.Snake:
+                    GenerateCubicPoints(start, end, false);
+                    break;
+                
+                case (int)TunnelStylesEnum.OddBall:
+                    GenerateCubicPoints(start, end, true);
+                    break;
+                
+                case (int)TunnelStylesEnum.HighCurve:
+                    GenerateQuadraticPoints(start, end, false);
+                    break;
+                
+                case (int)TunnelStylesEnum.LowCurve:
+                    GenerateQuadraticPoints(start, end, true);
+                    break;
+                
+                case (int)TunnelStylesEnum.Straight:
+                    GenerateLinearPoints(start, end);
+                    break;
+            }
+        }
+
         private static void GenerateLinearPoints(Vector2 p0, Vector2 p1)
         {
             //Bezier curve
@@ -106,6 +141,54 @@ namespace IAmLostInASea.Content.Generation
                 {
                     float t = i / (float)segments;
                     Vector2 pos = BezierCurve.LinearBezier(t, p0, p1);
+                    TunnelPositions.Add(pos);
+                }
+            }
+        }
+
+        public static void GenerateQuadraticPoints(Vector2 p0, Vector2 p2, bool lowCurve)
+        {
+            //Get p1
+            int cX = GetPointsCenter((int)p0.X, (int)p2.X);
+            float control = lowCurve ? Math.Max(p0.Y, p2.Y) : Math.Min(p0.Y, p2.Y);
+
+            Vector2 p1 = new(cX, (int)control);
+
+            //Bezier curve
+            int modulus = 10;
+            int segments = 1000;
+
+            for (int i = 0; i < segments; i++)
+            {
+                if (i % modulus == 0)
+                {
+                    float t = i / (float)segments;
+                    Vector2 pos = BezierCurve.QuadraticBezier(t, p0, p1, p2);
+                    TunnelPositions.Add(pos);
+                }
+            }
+        }
+
+        public static void GenerateCubicPoints(Vector2 p0, Vector2 p3, bool oddBall)
+        {
+            //Get p1 and p2
+            int cX = GetPointsCenter((int)p0.X, (int)p3.X);
+            float control1 = oddBall ? Math.Max(p0.Y, p3.Y) : Math.Min(p0.Y, p3.Y);
+            float control2 = oddBall ? Math.Min(p0.Y, p3.Y) : Math.Max(p0.Y, p3.Y);
+
+            Vector2 p1 = new(cX, (int)control1);
+            Vector2 p2 = new(cX, (int)control2);
+
+            //Bezier curve
+            int modulus = 10;
+            int segments = 1000;
+
+            for (int i = 0; i < segments; i++)
+            {
+                if (i % modulus == 0)
+                {
+                    float t = i / (float)segments;
+                    Vector2 pos = BezierCurve.CubicBezier(t, p0, p1, p2, p3);
                     TunnelPositions.Add(pos);
                 }
             }
@@ -140,6 +223,10 @@ namespace IAmLostInASea.Content.Generation
             //Create paths
             foreach (Vector2 position in TunnelPositions)
             {
+                //Thick sand roof for the tunnels
+                Point roofOrigin = new((int)position.X, (int)position.Y - 5);
+
+                ShapeHelper.PlaceCircle(roofOrigin, TileID.HardenedSand, WallID.None, pathSize, 0, replaceOnly: true);
                 ShapeHelper.PlaceCircle(position.ToPoint(), -1, WallID.None, pathSize, 0);
             }
 
@@ -171,9 +258,9 @@ namespace IAmLostInASea.Content.Generation
             int startX = DepthsCenterX - (DepthsLength / 2);
             int endX = DepthsCenterX + (DepthsLength / 2);
             
-            int endY = DepthsCenterY + (DepthsLength / 2);
+            int endY = DepthsCenterY + (DepthsLength / 2) + 10;
 
-            for (int l = 0; l < 3; l++)
+            for (int l = 0; l < 5; l++)
             {
                 for (int x = startX; x <= endX; x++)
                 {
