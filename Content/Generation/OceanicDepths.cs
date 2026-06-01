@@ -48,7 +48,7 @@ namespace IAmLostInASea.Content.Generation
 
             Vector2 entrancePosition = new(entrancePosX, entrancePosY);
 
-            int style = 4; // WorldGen.genRand.Next(5)
+            int style = WorldGen.genRand.Next(5);
             GeneratePoints(entrancePosition, OceanicCaves[0].origin, style);
 
             for (int i = 0; i < (OceanicCaves.Count - 1); i++)
