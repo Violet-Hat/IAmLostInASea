@@ -47,7 +47,7 @@ namespace IAmLostInASea.Content.Generation
 
             Vector2 entrancePosition = new(entrancePosX, entrancePosY);
 
-            int style = WorldGen.genRand.Next(5);
+            int style = 3; //WorldGen.genRand.Next(5)
             GetPoints(entrancePosition, OceanicCaves[0].origin, style);
 
             for (int i = 0; i < (OceanicCaves.Count - 1); i++)
@@ -104,7 +104,7 @@ namespace IAmLostInASea.Content.Generation
             return new Vector2(centerX + randX, centerY + randY);
         }
 
-        public static int GetPointsCenter(int x1, int x2) => Math.Min(x1, x2) + (Math.Abs(x1 - x2) / 2);
+        public static int GetPointsCenter(int x1, int x2) => (x1 + x2) / 2;
 
         private static void GetPoints(Vector2 start, Vector2 end, int style)
         {
