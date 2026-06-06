@@ -126,7 +126,7 @@ namespace IAmLostInASea.Content.Generation
             });
 
             //Generate Ocean Depths
-            int OceanBiomeIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Micro Biomes"));
+            int OceanBiomeIndex = tasks.FindIndex(genpass => genpass.Name.Equals("Clean Up Dirt"));
             if (OceanBiomeIndex != -1 && JungleOceanCave == (int)JungleOceanStyleEnum.Custom)
             {
                 tasks.Insert(OceanBiomeIndex + 1, new PassLegacy("Oceanic Depths Generation", OceanicDepths.DepthsGen));

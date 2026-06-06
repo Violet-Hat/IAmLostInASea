@@ -4,7 +4,6 @@ using Terraria;
 using Terraria.IO;
 using Terraria.ID;
 using Terraria.WorldBuilding;
-using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
 
 using IAmLostInASea.Common;
@@ -49,11 +48,11 @@ namespace IAmLostInASea.Content.Generation
             Vector2 entrancePosition = new(entrancePosX, entrancePosY);
 
             int style = WorldGen.genRand.Next(5);
-            GeneratePoints(entrancePosition, OceanicCaves[0].origin, style);
+            GetPoints(entrancePosition, OceanicCaves[0].origin, style);
 
             for (int i = 0; i < (OceanicCaves.Count - 1); i++)
             {
-                GeneratePoints(OceanicCaves[i].origin, OceanicCaves[i + 1].origin, style);
+                GetPoints(OceanicCaves[i].origin, OceanicCaves[i + 1].origin, style);
             }
             progress.Set(0.25);
 
@@ -68,6 +67,10 @@ namespace IAmLostInASea.Content.Generation
             progress.Set(0.95);
 
             Cleaning(entrancePosY);
+
+            //Make it a protected structure so it doesn't get exploded by vanilla gen
+            int ProtectionSize = DepthsLength;
+            GenVars.structures.AddProtectedStructure(new Rectangle(DepthsCenterX - ProtectionSize / 2, DepthsCenterY - ProtectionSize / 2, ProtectionSize, ProtectionSize));
         }
 
         private static Vector2[] GetOrigins()
@@ -103,33 +106,33 @@ namespace IAmLostInASea.Content.Generation
 
         public static int GetPointsCenter(int x1, int x2) => Math.Min(x1, x2) + (Math.Abs(x1 - x2) / 2);
 
-        private static void GeneratePoints(Vector2 start, Vector2 end, int style)
+        private static void GetPoints(Vector2 start, Vector2 end, int style)
         {
             switch (style)
             {
                 case (int)TunnelStylesEnum.Snake:
-                    GenerateCubicPoints(start, end, false);
+                    GetCubicPoints(start, end, false);
                     break;
                 
                 case (int)TunnelStylesEnum.OddBall:
-                    GenerateCubicPoints(start, end, true);
+                    GetCubicPoints(start, end, true);
                     break;
                 
                 case (int)TunnelStylesEnum.HighCurve:
-                    GenerateQuadraticPoints(start, end, false);
+                    GetQuadraticPoints(start, end, false);
                     break;
                 
                 case (int)TunnelStylesEnum.LowCurve:
-                    GenerateQuadraticPoints(start, end, true);
+                    GetQuadraticPoints(start, end, true);
                     break;
                 
                 case (int)TunnelStylesEnum.Straight:
-                    GenerateLinearPoints(start, end);
+                    GetLinearPoints(start, end);
                     break;
             }
         }
 
-        private static void GenerateLinearPoints(Vector2 p0, Vector2 p1)
+        private static void GetLinearPoints(Vector2 p0, Vector2 p1)
         {
             //Bezier curve
             int modulus = 10;
@@ -146,7 +149,7 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
-        public static void GenerateQuadraticPoints(Vector2 p0, Vector2 p2, bool lowCurve)
+        private static void GetQuadraticPoints(Vector2 p0, Vector2 p2, bool lowCurve)
         {
             //Get p1
             int cX = GetPointsCenter((int)p0.X, (int)p2.X);
@@ -169,7 +172,7 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
-        public static void GenerateCubicPoints(Vector2 p0, Vector2 p3, bool oddBall)
+        private static void GetCubicPoints(Vector2 p0, Vector2 p3, bool oddBall)
         {
             //Get p1 and p2
             int cX = GetPointsCenter((int)p0.X, (int)p3.X);
