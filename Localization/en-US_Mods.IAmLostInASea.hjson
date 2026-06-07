@@ -54,3 +54,5 @@ Configs: {
 		}
 	}
 }
+
+NPCs.Test.DisplayName: Test
