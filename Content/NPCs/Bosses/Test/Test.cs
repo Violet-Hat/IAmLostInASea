@@ -16,10 +16,17 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
     public class Test : ModNPC
     {
         //States
-        private enum EnemyState
+        enum EnemyState
         {
             Resting,
             Dashing
+        }
+
+        enum Frame
+        {
+            observing,
+            biting,
+            smiling,
         }
 
         //AI values
@@ -27,7 +34,12 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
 
         public int saveDirection;
 
-        public bool dontFacePlayer = false;
+        public float roarTimer = 120f;
+        public float restingStateSwitch = 150f;
+        public float playerPositionTimer = 55f;
+        public float dashTimer = 60f;
+        public float slowDownTimer = 90f;
+        public float loopTimer = 120f;
 
         public ref float AIState => ref NPC.ai[0];
         public ref float AITimer => ref NPC.ai[1];
@@ -43,8 +55,8 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
             //ints
             writer.Write(saveDirection);
 
-            //bools
-            writer.Write(dontFacePlayer);
+            //Vectors
+            writer.WriteVector2(savePlayerPosition);
         }
 
         public override void ReceiveExtraAI(BinaryReader reader)
@@ -52,20 +64,21 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
             //ints
             saveDirection = reader.ReadInt32();
 
-            //bools
-            dontFacePlayer = reader.ReadBoolean();
+            //Vectors
+            savePlayerPosition = reader.ReadVector2();
         }
 
         public override void SetDefaults()
         {
-            NPC.width = 59;
-            NPC.height = 90;
+            NPC.width = 118;
+            NPC.height = 180;
             NPC.lifeMax = 2800;
             NPC.damage = 15;
             NPC.defense = 12;
             NPC.npcSlots = 8f;
             NPC.knockBackResist = 0f;
             NPC.noGravity = true;
+            NPC.noTileCollide = true;
             NPC.HitSound = SoundID.NPCHit1;
             NPC.DeathSound = SoundID.NPCDeath17;
             NPC.value = 500f;
@@ -87,26 +100,61 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
             }
         }
 
+        public override void FindFrame(int frameHeight)
+        {
+            switch (AIState)
+            {
+                case (float)EnemyState.Resting:
+                    if (AITimer >= roarTimer && AITimer <= restingStateSwitch)
+                    {
+                        NPC.frame.Y = (int)Frame.biting * frameHeight;
+                    }
+                    else
+                    {
+                        NPC.frame.Y = (int)Frame.observing * frameHeight;
+                    }
+                    break;
+                
+                case (float)EnemyState.Dashing:
+                    if (AITimer >= playerPositionTimer && AITimer <= dashTimer)
+                    {
+                        NPC.frame.Y = (int)Frame.smiling * frameHeight;
+                    }
+                    else if (AITimer >= dashTimer && AITimer <= loopTimer)
+                    {
+                        NPC.frame.Y = (int)Frame.biting * frameHeight;
+                    }
+                    else
+                    {
+                        NPC.frame.Y = (int)Frame.observing * frameHeight;
+                    }
+                    break;
+            }
+        }
+
         public void Resting()
         {
             LookAtPlayer();
 
             AITimer++;
 
+            //Slow down
             if (NPC.velocity != Vector2.Zero)
             {
-                NPC.velocity = Vector2.Lerp(NPC.velocity, Vector2.Zero, 1f / 15);
+                NPC.velocity = Vector2.Lerp(NPC.velocity, Vector2.Zero, 1f / 10);
             }
             
-            if (AITimer == 120)
+            //Roar
+            if (AITimer == roarTimer)
             {
                 SoundEngine.PlaySound(SoundID.NPCDeath30, NPC.Center);
             }
 
-            if (AITimer == 130)
+            //State change
+            if (AITimer == restingStateSwitch)
             {
                 AIState = (float)EnemyState.Dashing;
-                AITimer = 0;
+                AITimer = dashTimer / 2; //The enemy will dash shortly after dashing
             }
         }
 
@@ -114,35 +162,41 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
         {
             AITimer++;
 
+            //Dash 3 times
             if (DashCount < 3)
             {
-                if (AITimer >= 0 && AITimer <= 60)
+                //Look at the player while the boss is preparing to charge
+                if (AITimer >= 0 && AITimer <= dashTimer)
                 {
                     LookAtPlayer();
                 }
                 
-                if (AITimer == 30)
+                //Save player position
+                if (AITimer == playerPositionTimer)
                 {
                     savePlayerPosition = Main.player[NPC.target].Center;
                 }
 
-                if (AITimer == 60)
+                //Dash
+                if (AITimer == dashTimer)
                 {
                     saveDirection = NPC.spriteDirection;
 
                     Vector2 ChargeDirection = savePlayerPosition - NPC.Center;
                     ChargeDirection.Normalize();
 
-                    NPC.velocity = ChargeDirection * 10;
+                    NPC.velocity = ChargeDirection * 15;
                 }
 
-                if (AITimer >= 90)
+                //Slow down after a bit
+                if (AITimer >= slowDownTimer)
                 {
                     NPC.direction = saveDirection;
-                    NPC.velocity = Vector2.Lerp(NPC.velocity, Vector2.Zero, 1f / 15);
+                    NPC.velocity = Vector2.Lerp(NPC.velocity, Vector2.Zero, 1f / 10);
                 }
 
-                if (AITimer >= 120)
+                //Loop
+                if (AITimer >= 105)
                 {
                     DashCount++;
                     AITimer = 0;
@@ -157,11 +211,13 @@ namespace IAmLostInASea.Content.NPCs.Bosses.Test
 
         public void LookAtPlayer()
         {
+            //EoC rotation
             Vector2 vector = new(NPC.Center.X, NPC.Center.Y);
             float rotX = Main.player[NPC.target].Center.X - vector.X;
             float rotY = Main.player[NPC.target].Center.Y - vector.Y;
             NPC.rotation = (float)Math.Atan2(rotY, rotX) + 4.71f;
 
+            //Sprite direction
             NPC.spriteDirection = NPC.direction;
         }
     }
