@@ -47,7 +47,7 @@ namespace IAmLostInASea.Content.Generation
 
             //Wall placement
             ShapeData wallCircle = new();
-            GenAction wallBlotches = new Modifiers.Blotches(2, 0.4);
+            GenAction wallBlotches = new Modifiers.Blotches(2, blotchChance);
 
             WorldUtils.Gen(origin, new Shapes.Circle(radius - 1), Actions.Chain(
             [
@@ -79,6 +79,75 @@ namespace IAmLostInASea.Content.Generation
             [
                 new Modifiers.IsNotSolid(), new Actions.SetLiquid(liquidType, byte.MaxValue)
             ]));
+        }
+
+        public static void PlaceRectangle(Point origin, int tileType, int wallType, int width, int height, double blotchChance = 0.4, bool clearTiles = true, bool clearWalls = true, bool replaceOnly = false)
+        {
+            //Tile placement
+            ShapeData rectangle = new();
+            GenAction blotches = new Modifiers.Blotches(2, blotchChance);
+
+            WorldUtils.Gen(origin, new Shapes.Rectangle(width, height), Actions.Chain(
+            [
+                blotches.Output(rectangle)
+            ]));
+
+            //Clear tiles
+            if (clearTiles && !replaceOnly)
+            {
+                WorldUtils.Gen(origin, new ModShapes.All(rectangle), Actions.Chain(
+                [
+                    new Actions.ClearTile(), new Actions.SetLiquid(0, 0)
+                ]));
+            }
+
+            //Place tiles
+            if (tileType > -1)
+            {
+                if (replaceOnly)
+                {
+                    WorldUtils.Gen(origin, new ModShapes.All(rectangle), Actions.Chain(
+                    [
+                        new Modifiers.IsSolid(), new Actions.SetTile((ushort)tileType)
+                    ]));
+                }
+                else
+                {
+                    WorldUtils.Gen(origin, new ModShapes.All(rectangle), Actions.Chain(
+                    [
+                        new Actions.PlaceTile((ushort)tileType)
+                    ]));
+                }
+            }
+
+            //Wall placement
+            Point wallOrigin = new(origin.X + 1, origin.Y + 1);
+
+            ShapeData wallRectangle = new();
+            GenAction wallBlotches = new Modifiers.Blotches(2, blotchChance);
+
+            WorldUtils.Gen(wallOrigin, new Shapes.Rectangle(width - 2, height - 2), Actions.Chain(
+            [
+                wallBlotches.Output(wallRectangle)
+            ]));
+
+            //Clear walls
+            if (clearWalls)
+            {
+                WorldUtils.Gen(wallOrigin, new ModShapes.All(wallRectangle), Actions.Chain(
+                [
+                    new Actions.ClearWall()
+                ]));
+            }
+
+            //Place walls
+            if (wallType > WallID.None)
+            {
+                WorldUtils.Gen(wallOrigin, new ModShapes.All(wallRectangle), Actions.Chain(
+                [
+                    new Actions.PlaceWall((ushort)wallType)
+                ]));
+            }
         }
     }
 }

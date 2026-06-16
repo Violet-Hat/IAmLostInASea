@@ -1,34 +1,14 @@
-using Terraria;
-using Terraria.ID;
-
 namespace IAmLostInASea.Content.Generation.Objects
 {
-    public class Cell(int x, int y, int size)
+    public class Cell(int i, int j, int x, int y)
     {
-        public readonly int x = x;
-        public readonly int y = y;
-        public readonly int size = (size - 1) / 2;
+        //Position in the 2D grid
+        public int i = i;
+        public int j = j;
 
-        public void Place()
-        {
-            for (int i = x - size; i <= x + size; i++)
-            {
-                for (int j = y - size; j <= y + size; j++)
-                {
-                    if (i != x || j != y)
-                    {
-                        WorldGen.KillTile(i, j, noItem: true);
-                        WorldGen.KillWall(i, j);
-
-                        WorldGen.PlaceTile(i, j, TileID.EmeraldGemspark);
-                    }
-                }
-            }
-
-            WorldGen.KillTile(x, y, noItem: true);
-            WorldGen.KillWall(x, y);
-
-            WorldGen.PlaceTile(x, y, TileID.RubyGemspark);
-        }
+        //Position ingame
+        public int x = x;
+        public int y = y;
+        public bool visited = false;
     }
 }
