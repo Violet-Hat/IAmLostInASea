@@ -12,87 +12,115 @@ namespace IAmLostInASea.Content.Generation
     public class Maze
     {
         //Generation values
-        static int MazeCenterX;
-        static int MazeCenterY;
-
-        static readonly int Width = 21;
-        static readonly int Height = 21;
+        static int mazeCenterX;
+        static int mazeCenterY;
+        static readonly int mazeWidth = 21;
+        static readonly int mazeHeight = 21;
 
         static readonly int cellSize = 5;
         static readonly int cellPadding = 3;
         static readonly int cellDistance = cellSize + cellPadding;
 
-        static readonly Cell[,] Grid = new Cell[Width, Height];
-        static readonly Stack<Cell> Stack = new();
+        static readonly Cell[,] grid = new Cell[mazeWidth, mazeHeight];
+        static readonly Stack<Cell> stack = new();
 
-        static Cell Current;
+        static Cell current;
 
         public static void MazeGen(GenerationProgress progress, GameConfiguration configuration)
         {
             progress.Message = "Bull of Hell";
-
+        
             //Maze center
-            MazeCenterX = Main.maxTilesX / 2;
-            MazeCenterY = (int)(Main.maxTilesY * 0.6f);
+            mazeCenterX = Main.maxTilesX / 2;
+            mazeCenterY = (int)(Main.maxTilesY * 0.6f);
 
-            //Add cells to the grid, i and j are the positions in the grid
-            int topCornerX = MazeCenterX - ((Width - 1) / 2 * cellDistance);
-            int topCornerY = MazeCenterY - ((Height - 1) / 2 * cellDistance);
+            //Center room width, height and edges
+            int centerRoomW = 5;
+            int centerRoomH = 5;
 
-            for (int i = 0; i < Width; i++)
+            int centerEdgeX = (mazeWidth - centerRoomW) / 2;
+            int centerEdgeY = (mazeHeight - centerRoomH) / 2;
+
+            //Maze top corners
+            int mazeTopCornerX = mazeCenterX - ((mazeWidth - 1) / 2 * cellDistance);
+            int mazeTopCornerY = mazeCenterY - ((mazeHeight - 1) / 2 * cellDistance);
+
+            //Add cells to the grid
+            for (int i = 0; i < mazeWidth; i++)
             {
-                for (int j = 0; j < Height; j++)
+                for (int j = 0; j < mazeHeight; j++)
                 {
-                    int offsetX = i * cellDistance;
-                    int offsetY = j * cellDistance;
-
-                    Cell cell = new(i, j, topCornerX + offsetX, topCornerY + offsetY);
-                    Grid[i, j] = cell;
+                    //The dead space is the center part of the maze
+                    if (i < centerEdgeX || j < centerEdgeY || i >= centerEdgeX + centerRoomW || j >= centerEdgeY + centerRoomH)
+                    {
+                        int offsetX = i * cellDistance;
+                        int offsetY = j * cellDistance;
+                        
+                        Cell cell = new(i, j, mazeTopCornerX + offsetX, mazeTopCornerY + offsetY);
+                        grid[i, j] = cell;
+                    }
                 }
             }
 
+            int clearPadding = cellSize - cellPadding;
+
             //Place base
-            int baseOriginX = topCornerX - cellDistance;
-            int baseOriginY = topCornerY - cellDistance;
-            Point baseOrigin = new(baseOriginX, baseOriginY);
+            PlaceMazeRectangle(mazeTopCornerX, mazeTopCornerY);
 
-            int baseWidth = (Width * cellDistance) + cellDistance;
-            int baseHeight = (Height * cellDistance) + cellDistance;
-
-            ShapeHelper.PlaceRectangle(baseOrigin, TileID.BlueDungeonBrick, WallID.BlueDungeon, baseWidth, baseHeight, 0);
             progress.Set(0.5);
 
             //Time to generate the maze
             List<Cell> neighbors;
 
-            Current = Grid[0, 0];
-            Current.visited = true;
-            Stack.Push(Current);
+            current = grid[0, 0];
+            current.visited = true;
+            stack.Push(current);
 
-            while (Stack.Count != 0)
+            while (stack.Count != 0)
             {
                 //Pop the cell from the stack and make it the current cell
-                Current = Stack.Pop();
+                current = stack.Pop();
 
                 //Check if it has unvisited neighbors
-                neighbors = HasNeighbors(Current);
+                neighbors = HasNeighbors(current);
 
                 if (neighbors.Count > 0)
                 {
                     //Push the current cell to the stack
-                    Stack.Push(Current);
+                    stack.Push(current);
 
                     //Choose one of the unvisited neighbors
                     Cell chosen = WorldGen.genRand.Next(neighbors);
 
                     //Remove the wall between the current cell and the chosen cell
-                    ConnectCells(Current, chosen);
+                    ConnectCells(current, chosen, clearPadding);
 
                     //Mark the chosen cell as visited and push it to the stack
                     chosen.visited = true;
-                    Stack.Push(chosen);
+                    stack.Push(chosen);
                 }
             }
+
+            //Dig entrances to the exterior
+            DigExteriorEntrances(clearPadding);
+
+            //Dig the center area
+            DigCenterArea(centerRoomW, centerRoomH, clearPadding);
+
+            //Dig a single entrance to the center
+            DigInternalEntrance(centerRoomW, centerRoomH, centerEdgeX, centerEdgeY, clearPadding);
+        }
+
+        private static void PlaceMazeRectangle(int topCornerX, int topCornerY)
+        {
+            int originX = topCornerX - cellDistance;
+            int originY = topCornerY - cellDistance;
+            Point origin = new(originX, originY);
+
+            int rectWidth = (mazeWidth * cellDistance) + cellDistance + 1;
+            int rectHeight = (mazeWidth * cellDistance) + cellDistance + 1;
+
+            ShapeHelper.PlaceRectangle(origin, TileID.BlueDungeonBrick, WallID.BlueDungeon, rectWidth, rectHeight, 0);
         }
 
         private static List<Cell> HasNeighbors(Cell cell)
@@ -103,36 +131,36 @@ namespace IAmLostInASea.Content.Generation
             //Add the unvisited neighbors to the neighbor list
             if (cell.i - 1 > -1)
             {
-                Cell left = Grid[cell.i - 1, cell.j];
+                Cell left = grid[cell.i - 1, cell.j];
 
-                if (!left.visited)
+                if (left != null && !left.visited)
                 {
                     neighbors.Add(left);
                 }
             }
-            if (cell.i + 1 < Width)
+            if (cell.i + 1 < mazeWidth)
             {
-                Cell right = Grid[cell.i + 1, cell.j];
+                Cell right = grid[cell.i + 1, cell.j];
 
-                if (!right.visited)
+                if (right != null && !right.visited)
                 {
                     neighbors.Add(right);
                 }    
             }
             if (cell.j - 1 > -1)
             {
-                Cell top = Grid[cell.i, cell.j - 1];
+                Cell top = grid[cell.i, cell.j - 1];
 
-                if (!top.visited)
+                if (top != null && !top.visited)
                 {
                     neighbors.Add(top);
                 }
             }
-            if (cell.j + 1 < Height)
+            if (cell.j + 1 < mazeHeight)
             {
-                Cell bottom = Grid[cell.i, cell.j + 1];
+                Cell bottom = grid[cell.i, cell.j + 1];
 
-                if (!bottom.visited)
+                if (bottom != null && !bottom.visited)
                 {
                     neighbors.Add(bottom);
                 }
@@ -141,10 +169,8 @@ namespace IAmLostInASea.Content.Generation
             return neighbors;
         }
 
-        private static void ConnectCells(Cell origin, Cell destiny)
+        private static void ConnectCells(Cell origin, Cell destiny, int padding)
         {
-            int clearPadding = cellSize - cellPadding;
-
             //Get the distances
             int distanceX = origin.x - destiny.x;
             int distanceY = origin.y - destiny.y;
@@ -156,13 +182,13 @@ namespace IAmLostInASea.Content.Generation
                 int startX = (origin.x < destiny.x) ? origin.x : destiny.x;
                 int endX = (startX == origin.x) ? destiny.x : origin.x;
 
-                for (int y = origin.y - clearPadding; y <= origin.y + clearPadding; y++)
+                for (int y = origin.y - padding; y <= origin.y + padding; y++)
                 {
-                    for (int x = startX - clearPadding; x <= endX + clearPadding; x++)
+                    for (int x = startX - padding; x <= endX + padding; x++)
                     {
                         if (Framing.GetTileSafely(x, y).HasTile)
                         {
-                            WorldGen.KillTile(x, y);
+                            WorldGen.KillTile(x, y, noItem:true);
                         }
                     }
                 }
@@ -175,14 +201,103 @@ namespace IAmLostInASea.Content.Generation
                 int startY = (origin.y < destiny.y) ? origin.y : destiny.y;
                 int endY = (startY == origin.y) ? destiny.y : origin.y;
 
-                for (int x = origin.x - clearPadding; x <= origin.x + clearPadding; x++)
+                for (int x = origin.x - padding; x <= origin.x + padding; x++)
                 {
-                    for (int y = startY - clearPadding; y <= endY + clearPadding; y++)
+                    for (int y = startY - padding; y <= endY + padding; y++)
                     {
                         if (Framing.GetTileSafely(x, y).HasTile)
                         {
                             WorldGen.KillTile(x, y);
                         }
+                    }
+                }
+            }
+        }
+
+        private static void DigExteriorEntrances(int padding)
+        {
+            //Cells in the corner
+            Cell topLeft = grid[0, 0];
+            Cell topRight = grid[mazeWidth - 1, 0];
+            Cell bottomLeft = grid[0, mazeHeight - 1];
+            Cell bottomRight = grid[mazeWidth - 1, mazeHeight - 1];
+
+            //l = tunnel length, w = tunnel width
+            for (int l = 0; l <= cellDistance; l++)
+            {
+                for (int w = -padding; w <= padding; w++)
+                {
+                    //Top left tunnel, goes left
+                    WorldGen.KillTile(topLeft.x - l, topLeft.y + w, noItem:true);
+
+                    //Top right tunnel, goes up
+                    WorldGen.KillTile(topRight.x + w, topRight.y - l, noItem:true);
+
+                    //Bottom left tunnel, goes down
+                    WorldGen.KillTile(bottomLeft.x + w, bottomLeft.y + l, noItem:true);
+
+                    //Bottom right tunnel, goes right
+                    WorldGen.KillTile(bottomRight.x + l, bottomRight.y + w, noItem:true);
+                }
+            }
+        }
+
+        private static void DigCenterArea(int gridWidth, int gridHeight, int padding)
+        {
+            //Center
+            int width = ((gridWidth - 1) / 2 * cellDistance) + padding;
+            int height = ((gridHeight - 1) / 2 * cellDistance) + padding;
+
+            for (int x = mazeCenterX - width; x <= mazeCenterX + width; x++)
+            {
+                for (int y = mazeCenterY - height; y <= mazeCenterY + height; y++)
+                {
+                    WorldGen.KillTile(x, y, noItem:true);
+                }
+            }
+        }
+
+        private static void DigInternalEntrance(int width, int height, int edgeX, int edgeY, int padding)
+        {
+            //Possible entrances
+            Cell leftEdge = grid[edgeX - 1, (mazeHeight - 1) / 2];
+            Cell rightEdge = grid[edgeX + width, (mazeHeight - 1) / 2];
+            Cell topEdge = grid[(mazeWidth - 1) / 2, edgeY - 1];
+            Cell bottomEdge = grid[(mazeWidth - 1) / 2, edgeX + height];
+
+            //List
+            Cell[] entrances = [leftEdge, rightEdge, topEdge, bottomEdge];
+
+            //Choose one at random
+            Cell chosen = WorldGen.genRand.Next(entrances);
+
+            //l = tunnel length, w = tunnel width
+            for (int l = 0; l <= cellDistance; l++)
+            {
+                for (int w = -padding; w <= padding; w++)
+                {
+                    //Left tunnel, goes right
+                    if (chosen == leftEdge)
+                    {
+                        WorldGen.KillTile(chosen.x + l, chosen.y + w, noItem:true);
+                    }
+
+                    //Right tunnel, goes left
+                    if (chosen == rightEdge)
+                    {
+                        WorldGen.KillTile(chosen.x - l, chosen.y + w, noItem:true);
+                    }
+
+                    //Top tunnel, goes down
+                    if (chosen == topEdge)
+                    {
+                        WorldGen.KillTile(chosen.x + w, chosen.y + l, noItem:true);
+                    }
+
+                    //Bottom tunnel, goes up
+                    if (chosen == bottomEdge)
+                    {
+                        WorldGen.KillTile(chosen.x + w, chosen.y - l, noItem:true);
                     }
                 }
             }
