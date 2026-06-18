@@ -104,11 +104,14 @@ namespace IAmLostInASea.Content.Generation
             //Dig entrances to the exterior
             DigExteriorEntrances(clearPadding);
 
-            //Dig the center area
-            DigCenterArea(centerRoomW, centerRoomH, clearPadding);
-
             //Dig a single entrance to the center
             DigInternalEntrance(centerRoomW, centerRoomH, centerEdgeX, centerEdgeY, clearPadding);
+
+            //Place platforms
+            PlacePlatforms(clearPadding);
+
+            //Dig the center area
+            DigCenterArea(centerRoomW, centerRoomH, clearPadding);
         }
 
         private static void PlaceMazeRectangle(int topCornerX, int topCornerY)
@@ -242,21 +245,6 @@ namespace IAmLostInASea.Content.Generation
             }
         }
 
-        private static void DigCenterArea(int gridWidth, int gridHeight, int padding)
-        {
-            //Center
-            int width = ((gridWidth - 1) / 2 * cellDistance) + padding;
-            int height = ((gridHeight - 1) / 2 * cellDistance) + padding;
-
-            for (int x = mazeCenterX - width; x <= mazeCenterX + width; x++)
-            {
-                for (int y = mazeCenterY - height; y <= mazeCenterY + height; y++)
-                {
-                    WorldGen.KillTile(x, y, noItem:true);
-                }
-            }
-        }
-
         private static void DigInternalEntrance(int width, int height, int edgeX, int edgeY, int padding)
         {
             //Possible entrances
@@ -269,7 +257,7 @@ namespace IAmLostInASea.Content.Generation
             Cell[] entrances = [leftEdge, rightEdge, topEdge, bottomEdge];
 
             //Choose one at random
-            Cell chosen = WorldGen.genRand.Next(entrances);
+            Cell chosen = bottomEdge; //WorldGen.genRand.Next(entrances)
 
             //l = tunnel length, w = tunnel width
             for (int l = 0; l <= cellDistance; l++)
@@ -299,6 +287,58 @@ namespace IAmLostInASea.Content.Generation
                     {
                         WorldGen.KillTile(chosen.x + w, chosen.y - l, noItem:true);
                     }
+                }
+            }
+        }
+
+        private static void PlacePlatforms(int padding)
+        {
+            //For each valid cell, place a platform beneath it
+            foreach (Cell cell in grid)
+            {
+                if (cell != null)
+                {
+                    for (int i = -padding; i <= padding; i++)
+                    {
+                        int x = cell.x + i;
+                        int y = cell.y + padding + 1;
+
+                        Tile tile = Framing.GetTileSafely(x, y);
+
+                        if (!tile.HasTile)
+                        {
+                            WorldGen.PlaceTile(x, y, TileID.Platforms, style: 6);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void DigCenterArea(int gridWidth, int gridHeight, int padding)
+        {
+            //Center width and height
+            int width = ((gridWidth - 1) / 2 * cellDistance) + padding;
+            int height = ((gridHeight - 1) / 2 * cellDistance) + padding;
+
+            //Dig the center area
+            for (int x = mazeCenterX - width; x <= mazeCenterX + width; x++)
+            {
+                for (int y = mazeCenterY - height; y <= mazeCenterY + height; y++)
+                {
+                    WorldGen.KillTile(x, y, noItem:true);
+                }
+            }
+
+            //Try placing platforms below it in case the entrance is at the bottom
+            int j = mazeCenterY + height + 1;
+
+            for (int i = mazeCenterX - width; i <= mazeCenterX + width; i++)
+            {
+                Tile tile = Framing.GetTileSafely(i, j);
+
+                if (!tile.HasTile)
+                {
+                    WorldGen.PlaceTile(i, j, TileID.Platforms, style: 6);
                 }
             }
         }
